@@ -1,0 +1,54 @@
+import ./outro_arquivo.well;
+import ./outro_arquvo_ainda.well;
+
+public fn main() -> Null{
+let a: String = "Isso é uma    string   com muitos espaços";
+let a2: String = `Isso é uma string com uma \\ barra inversa`;
+let b: String = 'Isso tbm é uma string com espaços \n e uma nova linha';
+let b2: String = 'Isso tbm é uma string com uma aspa extra e barra inversa \' ';
+let b3: String = "Isso tbm é uma string com uma aspa extra e barra inversa \" ";
+let c: String = 'Isso é uma string 
+quebrada pelo enter'; //comentário
+
+//isso é um comentário
+
+minha_funcao_em_outro_arquivo(a);
+
+out.warn("out.warn, fn, public, String, //, let, main(), texto pra saber se ele vai ignorar as strings ou não");
+
+let d: String = c + "\nAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+
+let e: MiniInt = {{ out.log("Escopo dentro de escopo, brabo"); }
+    let f: Option<MiniInt> = inp.read();
+
+    match f {
+        Some(f) => {return f};
+        None => {Error("Tipo inválido")};
+    };
+}
+
+if (e >= 5){
+    out.log("Maior ou igual a 5!");
+}else{
+out.error("Menor que 5!");
+}
+
+}
+
+public type Palavra{
+    a: String,
+    b: String,
+    c: String
+}
+
+public let variavel_publica: MiniInt = 127;
+
+public fn testeFuncao(var1:String, var2:String) -> Null {
+    out.log("textokk"); //comentário show
+    out.log("textokk");
+    //Comentário show
+    out.log("textokk");
+    out.log("textokk");
+}
+
+fn funcaoEmUmaLinha() -> Null {out.log("textokk");out.log("OUTRO TEXTO KK");}

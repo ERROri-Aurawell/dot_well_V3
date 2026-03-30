@@ -1,0 +1,18 @@
+public fn minha_funcao_em_outro_arquivo(var1: String){
+  out.warn("Ocorre mais do que deveria...");
+  out.warn("Ocorre mais do que deveria...");
+  out.warn("Ocorre mais do que deveria...");
+  out.warn("Ocorre mais do que deveria...");
+
+  {
+    //isso aqui é um escopo
+
+    let palavra: String = "Texto Texto Texto";
+  }
+}
+
+public let variavel_global: MiniInt = -3;
+
+fn funcao_invisivel(){
+  out.log("Isso é lixo.");
+}

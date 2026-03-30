@@ -1,0 +1,36 @@
+.values:
+NEW A1;
+NEW A2;
+NEW A3;
+NEW A4;
+
+_C1:
+MOVE "bacana", A2;
+MOVE 1, A1;
+CALL;
+MOVE true, A2;
+MOVE *D1, A3;
+MOVE 3, A1;
+CALL;
+
+_main:
+NEW B1;
+MOVE 1, B1;
+MOVE "$B1 == 1", A2;
+MOVE 2, A1;
+CALL;
+MOVE A4, A2;
+MOVE 1, A1;
+CALL;
+MOVE 3, A1;
+MOVE _C1, A3;
+CALL;
+*D1:
+MOVE 60, A1;
+MOVE 0, A2;
+CALL;
+
+//# - Console log
+//"true"
+//"bacana"
+// Stopped With Code 0
