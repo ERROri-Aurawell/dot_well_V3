@@ -82,7 +82,7 @@ fn main() {
     let mut is_master: bool = true;
     let mut strings: Vec<String> = Vec::new();
     let mut scopes: Vec<Scopes> = Vec::new();
-    let mut resto: Vec<String> = Vec::new();
+    let mut resto: Vec<Resto> = Vec::new();
     let mut imported_files: Vec<String> = Vec::new();
 
     stages::one::first_one(
@@ -122,4 +122,9 @@ pub struct Scopes{
     pub depth: u32,
     pub lines: Vec<String>,
     pub file: String,
+}
+
+pub struct Resto{
+    file: String,
+    content: String
 }

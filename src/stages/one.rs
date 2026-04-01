@@ -4,9 +4,7 @@ use crate::finders::find::{find_func, find_imports, find_scopes};
 
 use std::fs;
 
-use crate::kill;
-
-use crate::Scopes;
+use crate::{Resto, Scopes, kill};
 
 use std::path::{Path, PathBuf};
 
@@ -18,16 +16,16 @@ pub fn first_one(
     imported_files: &mut Vec<String>,
     strings: &mut Vec<String>,
     scopes: &mut Vec<Scopes>,
-    novo_resto: &mut Vec<String>,
+    novo_resto: &mut Vec<Resto>,
     is_master: &mut bool,
 ) {
-    let mut resto: Vec<String> = Vec::new();
+    let mut resto: Vec<Resto> = Vec::new();
 
     //Substitui todas as strings por tokens de STRING:X, onde X é o índice do array "strings".
     let lines: Vec<String> = prepare_to_parse(content, *is_debug, strings);
 
     //Substitui todos os escopos por tokens de SCOPE:X, onde X é o índice do array "scopes".
-    find_scopes(lines, scopes, &mut resto,&path );
+    find_scopes(lines, scopes, &mut resto, &path);
 
     if *is_debug {
         for (c, s) in strings.iter().enumerate() {
@@ -35,14 +33,17 @@ pub fn first_one(
         }
 
         for (c, s) in scopes.iter().enumerate() {
-            println!("ESCOPO {}\nPROFUNDIDADE DO ESCOPO: {}\nARQUIVO:{}\n {:#?}", c, s.depth, s.file, s.lines);
+            println!(
+                "ESCOPO {}\nPROFUNDIDADE DO ESCOPO: {}\nARQUIVO:{}\n {:#?}",
+                c, s.depth, s.file, s.lines
+            );
         }
     }
 
     //puxa do resto o caminho dos arquivos a importar. Importações DEVEM estar no escopo global.
     let (files_to_import, mut resto) = find_imports(resto, &is_master, &father_path);
 
-    //Apenas o Master deve importar arquivos. 
+    //Apenas o Master deve importar arquivos.
     *is_master = false;
 
     //Une o global de todos os arquivos.
@@ -56,7 +57,7 @@ pub fn first_one(
         }
 
         for r in &*novo_resto {
-            println!("NOVO RESTO: {}", r);
+            println!("NOVO RESTO: {}\nDO ARQUIVO: {}\n", r.content, r.file);
         }
     }
 

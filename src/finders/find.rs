@@ -4,9 +4,7 @@ use crate::text_to_vec::structs::FunctionDefinition;
 
 use std::path::{Path, PathBuf};
 
-use crate::kill;
-
-use crate::Scopes;
+use crate::{Resto, Scopes, kill};
 
 pub fn find_func(conteudo: Vec<String>) {
     // Funções/Resto (Vec<FunctionDefinition>, Vec<String>)
@@ -25,7 +23,12 @@ pub fn find_func(conteudo: Vec<String>) {
     }
 }
 
-pub fn find_scopes(conteudo: Vec<String>, escopos: &mut Vec<Scopes>, resto: &mut Vec<String>, file: &String) {
+pub fn find_scopes(
+    conteudo: Vec<String>,
+    escopos: &mut Vec<Scopes>,
+    resto: &mut Vec<Resto>,
+    file: &String,
+) {
     let mut profundidade: usize = 0;
     let mut stack: Vec<usize> = Vec::new();
     for mut linha in conteudo {
@@ -43,13 +46,17 @@ pub fn find_scopes(conteudo: Vec<String>, escopos: &mut Vec<Scopes>, resto: &mut
             if let Some(&current_scope_idx) = stack.last() {
                 escopos[current_scope_idx].lines.push(new_line);
             } else {
-                resto.push(new_line);
+                let r = Resto {
+                    file: file.clone(),
+                    content: new_line,
+                };
+                resto.push(r);
             }
 
             let scope = Scopes {
                 depth: profundidade as u32,
                 lines: Vec::new(),
-                file: file.to_string()
+                file: file.to_string(),
             };
 
             escopos.push(scope);
@@ -72,23 +79,27 @@ pub fn find_scopes(conteudo: Vec<String>, escopos: &mut Vec<Scopes>, resto: &mut
             if let Some(&current_scope_idx) = stack.last() {
                 escopos[current_scope_idx].lines.push(linha);
             } else {
-                resto.push(linha);
+                let r = Resto {
+                    file: file.clone(),
+                    content: linha,
+                };
+                resto.push(r);
             }
         }
     }
 }
 
-pub fn find_imports(
-    linhas: Vec<String>,
-    master: &bool,
-    path: &Path,
-) -> (Vec<PathBuf>, Vec<String>) {
+pub fn find_imports(linhas: Vec<Resto>, master: &bool, path: &Path) -> (Vec<PathBuf>, Vec<Resto>) {
     let mut files_to_import: Vec<PathBuf> = Vec::new();
-    let mut novo_resto: Vec<String> = Vec::new();
+    let mut novo_resto: Vec<Resto> = Vec::new();
 
     for linha in linhas {
-        if !linha.starts_with("import") {
-            novo_resto.push(linha.clone());
+        if !linha.content.starts_with("import") {
+            let resto = Resto {
+                file: linha.file,
+                content: linha.content,
+            };
+            novo_resto.push(resto);
             continue;
         };
 
@@ -96,7 +107,7 @@ pub fn find_imports(
             kill("ONLY MASTER CAN INPORT FILES");
         }
 
-        let mut chars = linha.chars();
+        let mut chars = linha.content.chars();
         chars.next_back();
         let path: PathBuf = path.join(&chars.as_str()[7..]);
 
@@ -115,3 +126,5 @@ pub fn find_public(scopes: &mut Vec<Vec<String>>, global: &mut Vec<String>, is_d
         }
     }
 }
+
+pub fn can_be_public() {}
