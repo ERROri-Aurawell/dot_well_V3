@@ -6,6 +6,8 @@ use std::path::{Path, PathBuf};
 
 use crate::kill;
 
+use crate::Scopes;
+
 pub fn find_func(conteudo: Vec<String>) {
     // Funções/Resto (Vec<FunctionDefinition>, Vec<String>)
     let mut resto: Vec<String> = Vec::new();
@@ -23,11 +25,13 @@ pub fn find_func(conteudo: Vec<String>) {
     }
 }
 
-pub fn find_scopes(conteudo: Vec<String>, escopos: &mut Vec<Vec<String>>, resto: &mut Vec<String>) {
+pub fn find_scopes(conteudo: Vec<String>, escopos: &mut Vec<Scopes>, resto: &mut Vec<String>, file: &String) {
+    let mut profundidade: usize = 0;
     let mut stack: Vec<usize> = Vec::new();
-
     for mut linha in conteudo {
         if linha.contains("{") {
+            //println!("PROFUNDIDADE: {}\nLINHA : {}", profundidade, &linha);
+
             linha.truncate(linha.len() - 1);
             let scope_id = escopos.len();
             let separator = if linha.ends_with(' ') || linha.is_empty() {
@@ -37,26 +41,36 @@ pub fn find_scopes(conteudo: Vec<String>, escopos: &mut Vec<Vec<String>>, resto:
             };
             let new_line = format!("{}{}*SCOPE:{}", linha, separator, scope_id);
             if let Some(&current_scope_idx) = stack.last() {
-                escopos[current_scope_idx].push(new_line);
+                escopos[current_scope_idx].lines.push(new_line);
             } else {
                 resto.push(new_line);
             }
 
-            escopos.push(Vec::new());
+            let scope = Scopes {
+                depth: profundidade as u32,
+                lines: Vec::new(),
+                file: file.to_string()
+            };
+
+            escopos.push(scope);
             stack.push(scope_id);
+
+            profundidade = profundidade + 1;
         } else if linha.contains("}") {
             linha.truncate(linha.len() - 1);
 
+            profundidade = profundidade - 1;
+
             if linha.len() > 0 {
                 if let Some(&current_scope_idx) = stack.last() {
-                    escopos[current_scope_idx].push(linha);
+                    escopos[current_scope_idx].lines.push(linha);
                 }
             }
 
             stack.pop();
         } else {
             if let Some(&current_scope_idx) = stack.last() {
-                escopos[current_scope_idx].push(linha);
+                escopos[current_scope_idx].lines.push(linha);
             } else {
                 resto.push(linha);
             }
@@ -90,4 +104,14 @@ pub fn find_imports(
     }
 
     (files_to_import, novo_resto)
+}
+
+pub fn find_public(scopes: &mut Vec<Vec<String>>, global: &mut Vec<String>, is_debug: &bool) {
+    for escopo in scopes {
+        for linha in escopo {
+            if linha.starts_with("public") {
+                for g in &*global {}
+            }
+        }
+    }
 }

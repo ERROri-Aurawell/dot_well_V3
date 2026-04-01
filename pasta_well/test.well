@@ -1,7 +1,9 @@
 import                    ./outro_arquivo.well;
 import ./outro_arquvo_ainda.well;
 
-public fn main() -> Null{
+//0
+
+public fn main() -> Null{ //1
 let a: String = "Isso é uma    string   com muitos espaços";
 let a2: String = `Isso é uma string com uma \\ barra inversa`;
 let b: String = 'Isso tbm é uma string com espaços \n e uma nova linha';
@@ -18,38 +20,46 @@ sys.out.warn("sys.out.warn, fn, public, String, //, let, main(), texto pra saber
 
 let d: String = c + "\nAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
-let e: MiniInt = {{ sys.out.log("Escopo dentro de escopo, brabo"); }
+let e: MiniInt = { // 2
+    { //3
+        sys.out.log("Escopo dentro de escopo, brabo"); 
+    }
+
     let f: Option<MiniInt> = inp.read();
 
-    match f {
-        Some(f) => {return f};
-        None => {Error("Tipo inválido")};
+    match f { // 3
+        Some(f) => { // 4
+            return f
+        },
+        None => { // 4
+            Error("Tipo inválido")
+        }
     };
 }
 
-if (e >= 5){
+if (e >= 5){ // 2
     sys.out.log("Maior ou igual a 5!");
-}else{
+}else{ // 2
     sys.out.error("Menor que 5!");
 }
 
 }
 
-public type Palavra{
+public type Palavra{ // 1
     a: String,
     b: String,
     c: String
 }
 
-extend Palavra {
+extend Palavra { // 1
     public fn aMaiusculo(){
         return self.a.toUpperCase();
-    } 
+    }
 }
 
 public let variavel_publica: MiniInt = 127;
 
-public fn testeFuncao(var1:String, var2:String) -> Null {
+public fn testeFuncao(var1:String, var2:String) -> Null { // 1
     sys.out.log("textokk"); //comentário show
     sys.out.log("textokk");
     //Comentário show
@@ -57,4 +67,4 @@ public fn testeFuncao(var1:String, var2:String) -> Null {
     sys.out.log("textokk");
 }
 
-fn funcaoEmUmaLinha() -> Null {sys.out.log("textokk");sys.out.log("OUTRO TEXTO KK");}
+fn funcaoEmUmaLinha() -> Null {sys.out.log("textokk");sys.out.log("OUTRO TEXTO KK");} // 1

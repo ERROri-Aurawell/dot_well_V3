@@ -81,7 +81,7 @@ fn main() {
 
     let mut is_master: bool = true;
     let mut strings: Vec<String> = Vec::new();
-    let mut scopes: Vec<Vec<String>> = Vec::new();
+    let mut scopes: Vec<Scopes> = Vec::new();
     let mut resto: Vec<String> = Vec::new();
     let mut imported_files: Vec<String> = Vec::new();
 
@@ -116,4 +116,10 @@ pub enum DataTypes {
     Function,
     Value,
     Type,
+}
+
+pub struct Scopes{
+    pub depth: u32,
+    pub lines: Vec<String>,
+    pub file: String,
 }

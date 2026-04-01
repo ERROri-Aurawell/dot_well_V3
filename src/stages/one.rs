@@ -1,4 +1,3 @@
-use crate::text_to_vec::imports::import_from_file;
 use crate::text_to_vec::prepare_terrain::prepare_to_parse;
 
 use crate::finders::find::{find_func, find_imports, find_scopes};
@@ -6,6 +5,8 @@ use crate::finders::find::{find_func, find_imports, find_scopes};
 use std::fs;
 
 use crate::kill;
+
+use crate::Scopes;
 
 use std::path::{Path, PathBuf};
 
@@ -16,7 +17,7 @@ pub fn first_one(
     is_debug: &bool,
     imported_files: &mut Vec<String>,
     strings: &mut Vec<String>,
-    scopes: &mut Vec<Vec<String>>,
+    scopes: &mut Vec<Scopes>,
     novo_resto: &mut Vec<String>,
     is_master: &mut bool,
 ) {
@@ -26,7 +27,7 @@ pub fn first_one(
     let lines: Vec<String> = prepare_to_parse(content, *is_debug, strings);
 
     //Substitui todos os escopos por tokens de SCOPE:X, onde X é o índice do array "scopes".
-    find_scopes(lines, scopes, &mut resto);
+    find_scopes(lines, scopes, &mut resto,&path );
 
     if *is_debug {
         for (c, s) in strings.iter().enumerate() {
@@ -34,14 +35,17 @@ pub fn first_one(
         }
 
         for (c, s) in scopes.iter().enumerate() {
-            println!("ESCOPO {} : {:#?}", c, s);
+            println!("ESCOPO {}\nPROFUNDIDADE DO ESCOPO: {}\nARQUIVO:{}\n {:#?}", c, s.depth, s.file, s.lines);
         }
     }
 
+    //puxa do resto o caminho dos arquivos a importar. Importações DEVEM estar no escopo global.
     let (files_to_import, mut resto) = find_imports(resto, &is_master, &father_path);
 
+    //Apenas o Master deve importar arquivos. 
     *is_master = false;
 
+    //Une o global de todos os arquivos.
     novo_resto.append(&mut resto);
 
     if *is_debug {
