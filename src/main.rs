@@ -1,13 +1,10 @@
 pub mod finders;
+mod stages;
 mod text_to_vec;
-use std::path::Path;
 mod vec_to_byte;
-use std::{env, fs, process};
-use text_to_vec::imports::import_from_file;
-use text_to_vec::prepare_terrain::prepare_to_parse;
 
-use crate::finders::find::{find_func, find_scopes};
-use crate::vec_to_byte::public_values::global_things;
+use std::path::Path;
+use std::{env, fs, process};
 
 pub const RESERVED: [&str; 22] = [
     "if",
@@ -42,7 +39,7 @@ pub fn kill(msg: &str) -> ! {
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    let (is_debug, path) = match args.get(1).map(|s| s.as_str()) {
+    let (is_debug, path) = match args.get(1).map(|s: &String| s.as_str()) {
         Some("--debug") => (
             true,
             args.get(2)
@@ -52,7 +49,7 @@ fn main() {
         None => kill("001 : NO_FILE_PROVIDED"),
     };
 
-    let content = fs::read_to_string(&path).unwrap_or_else(|e| {
+    let content: String = fs::read_to_string(&path).unwrap_or_else(|e: std::io::Error| {
         if is_debug {
             eprintln!("Falha ao ler o arquivo: {}", e);
         }
@@ -82,54 +79,27 @@ fn main() {
     };
     //println!("A\nB\x20C");
 
-    //let mut tree: Environment = Environment::new();
-
+    let mut is_master: bool = true;
     let mut strings: Vec<String> = Vec::new();
-
     let mut scopes: Vec<Vec<String>> = Vec::new();
-
-    let lines: Vec<String> = prepare_to_parse(content, is_debug, &mut strings);
-
-    if is_debug {
-        let mut c = 0;
-        for s in strings {
-            println!("*STRING:{} : {}", c, s);
-            c += 1;
-        }
-    }
-
-    let resto: Vec<String> = find_scopes(lines, &mut scopes);
-
-    for r in resto {
-        println!("RESTO: {}", r);
-    }
-
-    let mut c: usize = 0;
-    for s in scopes {
-        println!("ESCOPO {} : {:#?}", c, s);
-        c += 1;
-    }
-
-    return;
-
-    /*
-    let global_functions: Vec<String> = vec![];
-    let global_values: Vec<String> = vec![];
-    */
-    let mut values: Vec<Values> = vec![];
-
+    let mut resto: Vec<String> = Vec::new();
     let mut imported_files: Vec<String> = Vec::new();
 
-    if let Some(v) = Path::new(path).file_name().and_then(|n| n.to_str()) {
-        if is_debug {
-            println!("{}", &v);
-        }
-        imported_files.push(v.to_string())
-    } else {
-        kill("File Not Found");
-    }
+    stages::one::first_one(
+        content,
+        &father_path,
+        &path,
+        &is_debug,
+        &mut imported_files,
+        &mut strings,
+        &mut scopes,
+        &mut resto,
+        &mut is_master,
+    );
 
-    let _ = import_from_file(lines, &mut values, &is_debug, father_path, &mut strings);
+    if is_debug {
+        println!("Importações concluidas... eu acho");
+    }
 }
 
 #[derive(Debug)]

@@ -1,4 +1,4 @@
-import ./outro_arquivo.well;
+import                    ./outro_arquivo.well;
 import ./outro_arquvo_ainda.well;
 
 public fn main() -> Null{
@@ -14,11 +14,11 @@ quebrada pelo enter'; //comentário
 
 minha_funcao_em_outro_arquivo(a);
 
-out.warn("out.warn, fn, public, String, //, let, main(), texto pra saber se ele vai ignorar as strings ou não");
+sys.out.warn("sys.out.warn, fn, public, String, //, let, main(), texto pra saber se ele vai ignorar as strings ou não");
 
 let d: String = c + "\nAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
-let e: MiniInt = {{ out.log("Escopo dentro de escopo, brabo"); }
+let e: MiniInt = {{ sys.out.log("Escopo dentro de escopo, brabo"); }
     let f: Option<MiniInt> = inp.read();
 
     match f {
@@ -28,9 +28,9 @@ let e: MiniInt = {{ out.log("Escopo dentro de escopo, brabo"); }
 }
 
 if (e >= 5){
-    out.log("Maior ou igual a 5!");
+    sys.out.log("Maior ou igual a 5!");
 }else{
-out.error("Menor que 5!");
+    sys.out.error("Menor que 5!");
 }
 
 }
@@ -41,14 +41,20 @@ public type Palavra{
     c: String
 }
 
+extend Palavra {
+    public fn aMaiusculo(){
+        return self.a.toUpperCase();
+    } 
+}
+
 public let variavel_publica: MiniInt = 127;
 
 public fn testeFuncao(var1:String, var2:String) -> Null {
-    out.log("textokk"); //comentário show
-    out.log("textokk");
+    sys.out.log("textokk"); //comentário show
+    sys.out.log("textokk");
     //Comentário show
-    out.log("textokk");
-    out.log("textokk");
+    sys.out.log("textokk");
+    sys.out.log("textokk");
 }
 
-fn funcaoEmUmaLinha() -> Null {out.log("textokk");out.log("OUTRO TEXTO KK");}
+fn funcaoEmUmaLinha() -> Null {sys.out.log("textokk");sys.out.log("OUTRO TEXTO KK");}

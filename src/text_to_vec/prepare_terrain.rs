@@ -25,7 +25,6 @@ pub fn prepare_to_parse(content: String, is_debug: bool, strings: &mut Vec<Strin
         }
         println!("\n--");
     }
-    //
 
     let mut saida: Vec<String> = Vec::new();
 
@@ -75,7 +74,6 @@ pub fn prepare_to_parse(content: String, is_debug: bool, strings: &mut Vec<Strin
 
                 if c == fechamento_aguardado {
                     let frase_final: String = string_atual.into_iter().collect();
-                    //println!("O QUE É VOCÊ?????: {}", &frase_final);
                     dentro_string = false;
                     strings.push(frase_final);
                     string_atual = Vec::new();

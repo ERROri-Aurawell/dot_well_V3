@@ -11,7 +11,7 @@ pub fn import_from_file(
     valores: &mut Vec<Values>,
     is_debug: &bool,
     path: &Path,
-    strings: &mut Vec<String>
+    strings: &mut Vec<String>,
 ) {
     for v in import {
         if v.starts_with("import") {
@@ -42,8 +42,7 @@ pub fn import_from_file(
 
                 let lines: Vec<String> = prepare_to_parse(content, *is_debug, strings);
 
-                    let _ = find_func(lines);
-                    
+                let _ = find_func(lines);
             } else {
                 kill("File Not Found");
             }
