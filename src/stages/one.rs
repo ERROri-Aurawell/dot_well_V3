@@ -1,6 +1,6 @@
 use crate::text_to_vec::prepare_terrain::prepare_to_parse;
 
-use crate::finders::find::{find_func, find_imports, find_scopes};
+use crate::finders::find::{find_function, find_imports, find_scopes};
 
 use std::fs;
 
@@ -8,11 +8,18 @@ use crate::{Resto, Scopes, kill};
 
 use std::path::{Path, PathBuf};
 
+/// Primeiro estágio do compilador/transpilador.
+///
+/// Este estágio realiza as seguintes tarefas:
+/// 1. Limpeza e normalização do código (removendo comentários e espaços extras).
+/// 2. Tokenização de strings e identificação de escopos (blocos `{}`).
+/// 3. Resolução recursiva de arquivos importados.
 pub fn first_one(
     content: String,
     father_path: &Path,
     path: &String,
     is_debug: &bool,
+    first: &bool,
     imported_files: &mut Vec<String>,
     strings: &mut Vec<String>,
     scopes: &mut Vec<Scopes>,
@@ -21,60 +28,72 @@ pub fn first_one(
 ) {
     let mut resto: Vec<Resto> = Vec::new();
 
-    //Substitui todas as strings por tokens de STRING:X, onde X é o índice do array "strings".
+    // Estágio 1.1: Limpeza e Substituição de Strings.
     let lines: Vec<String> = prepare_to_parse(content, *is_debug, strings);
 
-    //Substitui todos os escopos por tokens de SCOPE:X, onde X é o índice do array "scopes".
+    // Estágio 1.2: Identificação de Escopos (Substitui blocos por tokens SCOPE:X).
     find_scopes(lines, scopes, &mut resto, &path);
 
     if *is_debug {
+        println!("\n--- TABELA DE STRINGS ---");
         for (c, s) in strings.iter().enumerate() {
-            println!("*STRING:{} : {}", c, s);
+            println!("[{:3}] -> \"{}\"", c, s);
         }
 
+        println!("\n--- ESCOPOS IDENTIFICADOS ---");
         for (c, s) in scopes.iter().enumerate() {
             println!(
-                "ESCOPO {}\nPROFUNDIDADE DO ESCOPO: {}\nARQUIVO:{}\n {:#?}",
-                c, s.depth, s.file, s.lines
+                "ID: {:3} | Profundidade: {} | Arquivo: {}",
+                c, s.depth, s.file
             );
+            for line in &s.lines {
+                println!("  | {}", line);
+            }
         }
     }
 
-    //puxa do resto o caminho dos arquivos a importar. Importações DEVEM estar no escopo global.
+    // Estágio 1.3: Extração de Importações (Devem estar no escopo global).
     let (files_to_import, mut resto) = find_imports(resto, &is_master, &father_path);
 
-    //Apenas o Master deve importar arquivos.
-    *is_master = false;
-
-    //Une o global de todos os arquivos.
+    // Acumula o conteúdo global processado (o que não está dentro de escopos).
     novo_resto.append(&mut resto);
 
     if *is_debug {
-        if *is_master {
+        if !files_to_import.is_empty() {
+            println!("\n--- ARQUIVOS PENDENTES PARA IMPORTAÇÃO ---");
             for r in &files_to_import {
-                println!("ARQUIVOS A IMPORTAR: {:#?}", r);
+                println!(" -> {:?}", r);
             }
         }
 
+        println!("\n--- CONTEÚDO GLOBAL (RESTO) ---");
         for r in &*novo_resto {
-            println!("NOVO RESTO: {}\nDO ARQUIVO: {}\n", r.content, r.file);
+            println!("[{}] {}", r.file, r.content);
         }
     }
 
-    //Puxa o nome e termina a importação.
+    // Registra o arquivo atual na lista de arquivos já processados.
     if let Some(v) = Path::new(path).file_name().and_then(|n| n.to_str()) {
         if *is_debug {
-            println!("\n{} IMPORTADO COM SUCESSO\n", &v);
+            println!("\n[OK] '{}' carregado com sucesso.", &v);
         }
         imported_files.push(v.to_string())
     } else {
         kill("File Not Found");
     }
 
-    //Começa a importação dos outros arquivos
+    if !*is_master {
+        return;
+    }
+
+    println!("QUANTAS VEZES EU VOU SER CHAMADO?????\n------\n------\n-------\n\n");
+    // Apenas o arquivo Master (raiz) pode iniciar o processo de importação em cascata.
+    *is_master = false;
+
+    // Estágio 1.4: Recursividade (Processa cada arquivo encontrado no comando 'import').
     for file_to_import in files_to_import {
         if *is_debug {
-            println!("Importando : {:?}\n", &file_to_import);
+            println!("\n[IMPORT] Lendo dependência: {:?}", &file_to_import);
         }
         let content: String =
             fs::read_to_string(&file_to_import).unwrap_or_else(|e: std::io::Error| {
@@ -95,12 +114,7 @@ pub fn first_one(
             }
 
             if *is_debug {
-                println!(
-                    "Path: {:?}\nDebug: {}\nLength: {} \n",
-                    path,
-                    is_debug,
-                    content.len()
-                );
+                println!(" -> Path: {}\n -> Size: {} bytes", path, content.len());
             }
 
             first_one(
@@ -108,6 +122,7 @@ pub fn first_one(
                 father_path,
                 &path,
                 is_debug,
+                first,
                 imported_files,
                 strings,
                 scopes,
@@ -116,4 +131,11 @@ pub fn first_one(
             );
         }
     }
+
+    println!("EU SÓ SOU CHAMADO UMA VEZ, DEPOIS DE TODOS\n\n");
+
+    // Estágio 1.5: Públicos válidos e funções
+    let (funcoes_globais, funcoes_locais, new_r) = find_function(scopes, novo_resto, is_debug);
+
+    
 }

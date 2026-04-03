@@ -20,10 +20,10 @@ pub fn prepare_to_parse(content: String, is_debug: bool, strings: &mut Vec<Strin
         .collect();
 
     if is_debug {
-        for line in &pre_result {
-            println!("PRE_RESULT : {}", line);
+        println!("\n--- PRE-PARSING (Limpeza de Comentários) ---");
+        for (idx, line) in pre_result.iter().enumerate() {
+            println!("{:3} | {}", idx + 1, line);
         }
-        println!("\n--");
     }
 
     let mut saida: Vec<String> = Vec::new();
@@ -99,6 +99,8 @@ pub fn prepare_to_parse(content: String, is_debug: bool, strings: &mut Vec<Strin
                 continue;
             }
 
+            
+
             linha.push(c);
 
             if fechamento.contains(&c) {
@@ -114,8 +116,9 @@ pub fn prepare_to_parse(content: String, is_debug: bool, strings: &mut Vec<Strin
     }
 
     if is_debug {
-        for line in &saida {
-            println!("POS_RESULT:{}", line);
+        println!("\n--- POST-PARSING (Tokenização de Strings e Quebras) ---");
+        for (idx, line) in saida.iter().enumerate() {
+            println!("{:3} | {}", idx + 1, line);
         }
     }
 

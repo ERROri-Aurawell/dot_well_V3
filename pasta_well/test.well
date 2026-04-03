@@ -3,6 +3,10 @@ import ./outro_arquvo_ainda.well;
 
 //0
 
+public fn funcaoantesdomainsopraquebraroclima(){
+    //não tem nada aqui
+}
+
 public fn main() -> Null{ //1
 let a: String = "Isso é uma    string   com muitos espaços";
 let a2: String = `Isso é uma string com uma \\ barra inversa`;
@@ -16,6 +20,16 @@ quebrada pelo enter'; //comentário
 
 minha_funcao_em_outro_arquivo(a);
 
+//public fn aaaaa(){}
+
+fn funcaoDentroDoMain(){
+    let input: Option<MiniInt> = sys.in.read();
+
+    //public fn a(){}
+}
+
+    funcaoDentroDoMain();
+
 sys.out.warn("sys.out.warn, fn, public, String, //, let, main(), texto pra saber se ele vai ignorar as strings ou não");
 
 let d: String = c + "\nAAAAAAAAAAAAAAAAAAAAAAAAAAA";
@@ -25,7 +39,7 @@ let e: MiniInt = { // 2
         sys.out.log("Escopo dentro de escopo, brabo"); 
     }
 
-    let f: Option<MiniInt> = inp.read();
+    let f: Option<MiniInt> = sys.in.read();
 
     match f { // 3
         Some(f) => { // 4
@@ -53,13 +67,18 @@ public type Palavra{ // 1
 
 extend Palavra { // 1
     public fn aMaiusculo(){
-        return self.a.toUpperCase();
+        let aa = self.aMinusculo();
+        return aa.toUpperCase();
+    }
+
+    fn aMinusculo(){
+        return self.a.toLowerCase();
     }
 }
 
 public let variavel_publica: MiniInt = 127;
 
-public fn testeFuncao(var1:String, var2:String) -> Null { // 1
+public fn testeFuncao(var1:String, var2:String)-> Null { // 1
     sys.out.log("textokk"); //comentário show
     sys.out.log("textokk");
     //Comentário show

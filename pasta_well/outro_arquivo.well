@@ -9,6 +9,10 @@ public fn minha_funcao_em_outro_arquivo(var1: String){
 
     let palavra: String = "Texto Texto Texto";
   }
+
+  fn funcaodentrodafuncaodooutroarquivo(var1: String){
+    //nada também
+  }
 }
 
 public let variavel_global: MiniInt = -3;
@@ -16,3 +20,4 @@ public let variavel_global: MiniInt = -3;
 fn funcao_invisivel(){
   sys.out.log("Isso é lixo.");
 }
+

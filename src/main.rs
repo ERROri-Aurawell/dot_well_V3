@@ -64,12 +64,10 @@ fn main() {
     }
 
     if is_debug {
-        println!(
-            "Path: {}\nDebug: {}\nLength: {} \n",
-            path,
-            is_debug,
-            content.len()
-        );
+        println!("\n[SYSTEM] Iniciando processamento:");
+        println!(" > Arquivo: {}", path);
+        println!(" > Tamanho: {} bytes", content.len());
+        println!("------------------------------------------");
     }
 
     let father_path: &Path = if let Some(v) = Path::new(path).parent() {
@@ -85,11 +83,13 @@ fn main() {
     let mut resto: Vec<Resto> = Vec::new();
     let mut imported_files: Vec<String> = Vec::new();
 
+    let mut first: bool = true;
     stages::one::first_one(
         content,
         &father_path,
         &path,
         &is_debug,
+        &first,
         &mut imported_files,
         &mut strings,
         &mut scopes,
@@ -98,7 +98,7 @@ fn main() {
     );
 
     if is_debug {
-        println!("Importações concluidas... eu acho");
+        println!("\n[SUCCESS] Processamento de estágios concluído.");
     }
 }
 
@@ -118,12 +118,14 @@ pub enum DataTypes {
     Type,
 }
 
+#[derive(Debug)]
 pub struct Scopes{
     pub depth: u32,
     pub lines: Vec<String>,
     pub file: String,
 }
 
+#[derive(Debug)]
 pub struct Resto{
     file: String,
     content: String
