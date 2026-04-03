@@ -155,6 +155,7 @@ pub struct Function {
     pub body_scope_id: u32,
     pub public: bool,
     pub return_type: String,
+    pub file: String,
 }
 
 #[derive(Debug)]
@@ -198,12 +199,33 @@ fn analyze_fn(
         ) = unassemble_function(is_debug, content, &f.file);
 
         let nf = Function {
-            name,
+            name: name.clone(),
             params,
             body_scope_id,
             public,
             return_type,
+            file: f.file.clone(),
         };
+
+        for g in &*global {
+            if g.name == name && (g.public && public || g.file == f.file) {
+                let mut public_g = "";
+                let mut public_n = "";
+
+                if g.public {
+                    public_g = "public ";
+                }
+
+                if public {
+                    public_n = "public "
+                }
+                let error = format!(
+                    "TWO OR MORE PUBLIC/GLOBAL FUNCTIONS CANNOT HAVE THE SAME NAME. \n| {}{} | & | {}{} |\nFILE: {}",
+                    public_g, g.name, public_n, name, f.file
+                );
+                kill(&error);
+            }
+        }
         global.push(nf);
     }
 }
@@ -220,7 +242,7 @@ fn analyze_local_fn(
         //println!("\nLINE: {}", &l);
         if line.starts_with("public") {
             let msg = format!(
-                "A INTERNAL SCOPE CANNOT HAVE A PUBLIC DECLARATION | FILE: {} ",
+                "A INTERNAL SCOPE CANNOT HAVE A PUBLIC DECLARATION | FILE: {}",
                 &scope.file
             );
             kill(&msg);
@@ -264,17 +286,28 @@ fn analyze_local_fn(
                     );
 
                     let nf = Function {
-                        name,
+                        name: name.clone(),
                         params,
                         body_scope_id,
                         public: false,
                         return_type,
+                        file: scope.file.clone(),
                     };
 
                     let nf = LocalFunction {
                         function: nf,
                         father: father_id,
                     };
+
+                    for f in &*local {
+                        if f.function.name == name && f.father == father_id {
+                            let error = format!(
+                                "-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-\nTWO OR MORE LOCAL FUNCTIONS CANNOT HAVE THE SAME NAME.\n| {} | & | {} |\nFILE: {}",
+                                f.function.name, name, scope.file
+                            );
+                            kill(&error);
+                        }
+                    }
 
                     local.push(nf);
                 }
@@ -335,7 +368,7 @@ fn unassemble_function(
                 let error = format!("FUNCTION INTERNAL ERROR: PARSING MALFUNCTION : {}", &file);
                 true_id = id.parse().expect(&error);
             } else {
-                let error = format!("FUNCTION INTERNAL ERROR: PARSING MALFUNCTION: {}", &file);
+                let error = format!("FUNCTION INTERNAL ERROR: BUILDING MALFUNCTION: {}", &file);
                 kill(&error);
             }
         } else {
@@ -348,4 +381,100 @@ fn unassemble_function(
     };
 
     (true_params, true_id, true_name, true_return)
+}
+
+pub fn find_types(scopes: &mut Vec<Scopes>, resto: &mut Vec<Resto>, is_debug: &bool) {
+    let mut types: Vec<RawType> = Vec::new();
+
+    let mut new_new_line: Vec<Resto> = Vec::new();
+    for r in resto {
+        if !r.content.contains("type") {
+            new_new_line.push(Resto {
+                file: r.file.clone(),
+                content: r.content.clone(),
+            });
+            continue;
+        };
+
+        println!("RESTO: {}", &r.content);
+
+        let is_public: bool;
+        let resto: String;
+        let true_name: String;
+
+        let mut params: Vec<Parameter> = Vec::new();
+
+        if let Some((_, tipo)) = r.content.split_once("public ") {
+            is_public = true;
+            resto = tipo[5..].to_string();
+        } else {
+            is_public = false;
+            resto = r.content[5..].to_string();
+        }
+
+        println!("RESTO NOVO:{}", &resto);
+
+        let resto = resto.replace(" ", "");
+
+        if let Some((nome, id)) = resto.split_once("*") {
+            true_name = nome.to_string();
+
+            let id: &str = &id[6..];
+
+            let error = format!("TYPE INTERNAL ERROR: PARSING MALFUNCTION : {}", &r.file);
+            let id: u32 = id.parse().expect(&error);
+
+            let escopo_interno: &Scopes = &scopes[id as usize];
+
+            println!("{:?}", &escopo_interno);
+
+            let so_close_params: Vec<&str> = escopo_interno.lines[0].split(",").collect();
+
+            if so_close_params.is_empty() {
+                let error = format!(
+                    "TYPE SYNTAX ERROR: NO PARAMS FOUND: \"{}\" : {}",
+                    true_name, &r.file
+                );
+                kill(&error);
+            }
+
+            for s in so_close_params {
+                if let Some((name, type_of)) = s.split_once(":") {
+                    params.push(Parameter {
+                        var_name: name.to_string(),
+                        var_type: type_of.to_string(),
+                    })
+                } else {
+                    let error = format!("TYPE SYNTAX ERROR: \"{}\" : {}", true_name, &r.file);
+                    kill(&error);
+                }
+            }
+
+            let rt = RawType {
+                public: is_public,
+                file: r.file.clone(),
+                fields: params,
+            };
+
+            types.push(rt);
+        } else {
+            let error = format!("TYPE INTERNAL ERROR: BUILDING MALFUNCTION: {}", &r.file);
+            kill(&error);
+        }
+    }
+    //
+
+    //TODO : EXTRAIR MÉTODOS DO TIPO
+}
+
+pub struct Type {
+    pub type_params: RawType,
+    pub external_methods: Option<Vec<Function>>,
+    pub internal_methods: Option<Vec<LocalFunction>>,
+}
+
+pub struct RawType {
+    pub public: bool,
+    pub file: String,
+    pub fields: Vec<Parameter>,
 }

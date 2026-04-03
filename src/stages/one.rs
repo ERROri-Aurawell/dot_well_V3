@@ -1,6 +1,6 @@
 use crate::text_to_vec::prepare_terrain::prepare_to_parse;
 
-use crate::finders::find::{find_function, find_imports, find_scopes};
+use crate::finders::find::{find_function, find_imports, find_scopes, find_types};
 
 use std::fs;
 
@@ -86,7 +86,7 @@ pub fn first_one(
         return;
     }
 
-    println!("QUANTAS VEZES EU VOU SER CHAMADO?????\n------\n------\n-------\n\n");
+    //println!("QUANTAS VEZES EU VOU SER CHAMADO?????\n------\n------\n-------\n\n");
     // Apenas o arquivo Master (raiz) pode iniciar o processo de importação em cascata.
     *is_master = false;
 
@@ -132,10 +132,71 @@ pub fn first_one(
         }
     }
 
-    println!("EU SÓ SOU CHAMADO UMA VEZ, DEPOIS DE TODOS\n\n");
+    //println!("EU SÓ SOU CHAMADO UMA VEZ, DEPOIS DE TODOS\n\n");
 
     // Estágio 1.5: Públicos válidos e funções
     let (funcoes_globais, funcoes_locais, new_r) = find_function(scopes, novo_resto, is_debug);
 
-    
+    *novo_resto = new_r;
+
+    let mut files: Vec<String> = Vec::new();
+
+    for f in &funcoes_locais {
+        if *is_debug {
+            println!(
+                "Função: {} | \nPai: Escopo {}\n",
+                &f.function.name, &f.father
+            );
+        }
+
+        let scope: &Scopes = &scopes[f.father as usize];
+
+        if files.contains(&scope.file) {
+            continue;
+        }
+
+        let mut new_lines: Vec<String> = Vec::new();
+
+        for l in scope.lines.iter() {
+            if *is_debug {
+                println!("L - PAI: {}", &l);
+            }
+
+            if l.starts_with("fn") {
+                continue;
+            }
+            new_lines.push(l.to_string());
+        }
+
+        let new_scope = Scopes {
+            depth: scope.depth,
+            lines: new_lines,
+            file: scope.file.clone(),
+        };
+
+        files.push(scope.file.clone());
+
+        scopes[f.father as usize] = new_scope;
+    }
+
+    if *is_debug {
+        println!("\n--- CONTEÚDO GLOBAL (RESTO) ---");
+        for r in &*novo_resto {
+            println!("[{}] {}", r.file, r.content);
+        }
+
+        println!("\n--- ESCOPOS IDENTIFICADOS ---");
+        for (c, s) in scopes.iter().enumerate() {
+            println!(
+                "ID: {:3} | Profundidade: {} | Arquivo: {}",
+                c, s.depth, s.file
+            );
+            for line in &s.lines {
+                println!("  | {}", line);
+            }
+        }
+    }
+
+    // 1.6 Tipos e Extensões
+    find_types(scopes, novo_resto, &is_debug);
 }

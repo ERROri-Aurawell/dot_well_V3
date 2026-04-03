@@ -13,6 +13,7 @@ public fn minha_funcao_em_outro_arquivo(var1: String){
   fn funcaodentrodafuncaodooutroarquivo(var1: String){
     //nada também
   }
+
 }
 
 public let variavel_global: MiniInt = -3;
