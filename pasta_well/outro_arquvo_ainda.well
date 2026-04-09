@@ -2,6 +2,6 @@ let numero_jogado: LongLongInt = 1023984239857234857234858;
 
 impl Palavra{
     public fn funcao_extendida_em_outro_arquivo(entrada: String){
-        sys.out.log()
+        sys.out.log(entrada)
     }
 }

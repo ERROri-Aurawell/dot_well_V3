@@ -135,7 +135,7 @@ pub fn first_one(
     //println!("EU SÓ SOU CHAMADO UMA VEZ, DEPOIS DE TODOS\n\n");
 
     // Estágio 1.5: Públicos válidos e funções
-    let (funcoes_globais, funcoes_locais, new_r) = find_function(scopes, novo_resto, is_debug);
+    let (funcoes_globais, funcoes_locais, new_r) = find_function(scopes, novo_resto, is_debug, false, "");
 
     *novo_resto = new_r;
 

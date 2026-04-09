@@ -67,6 +67,12 @@ if (e >= 5){ // 2
 
 }
 
+impl Palavra2{
+    public fn palavra2(){
+        sys.out.warn("Isso não faz nada");
+    }
+}
+
 public type Palavra{ // 1
     a: String,
     b: String,
@@ -83,13 +89,19 @@ public  type Palavra2{ // 1
 public type out;
 
 impl Palavra { // 1
-    public fn aMaiusculo(){
+    public fn aMaiusculo(self){
         let aa = self.aMinusculo();
         return aa.toUpperCase();
     }
 
-    fn aMinusculo(){
+    fn aMinusculo(self){
         return self.a.toLowerCase();
+    }
+}
+
+impl Palavra2{
+    public fn palavra3(){
+        sys.out.warn("Isso não faz nada");
     }
 }
 

@@ -112,12 +112,14 @@ pub fn find_function(
     scopes: &mut Vec<Scopes>,
     resto: &mut Vec<Resto>,
     is_debug: &bool,
+    type_function: bool,
+    who: &str
 ) -> (Vec<Function>, Vec<LocalFunction>, Vec<Resto>) {
     let mut global: Vec<Function> = Vec::new(); // Funções globais (do arquivo/projeto)
     let mut local: Vec<LocalFunction> = Vec::new(); //Funções locais
     let mut new_resto: Vec<Resto> = Vec::new(); //O restante da global.
 
-    analyze_fn(&is_debug, resto, &mut global, &mut new_resto);
+    analyze_fn(&is_debug, resto, &mut global, &mut new_resto, &type_function, &who);
 
     for f in &global {
         analyze_local_fn(
@@ -126,6 +128,8 @@ pub fn find_function(
             f.body_scope_id,
             &scopes,
             &mut local,
+            &type_function,
+            who,
         );
     }
     if *is_debug {
@@ -169,6 +173,8 @@ fn analyze_fn(
     resto: &mut Vec<Resto>,
     global: &mut Vec<Function>,
     new_resto: &mut Vec<Resto>,
+    type_function: &bool,
+    who: &str
 ) {
     for f in resto {
         let content: &str;
@@ -196,7 +202,7 @@ fn analyze_fn(
             u32,
             String,
             String,
-        ) = unassemble_function(is_debug, content, &f.file);
+        ) = unassemble_function(is_debug, content, &f.file, type_function, who);
 
         let nf = Function {
             name: name.clone(),
@@ -236,6 +242,8 @@ fn analyze_local_fn(
     father_id: u32,
     scopes: &Vec<Scopes>,
     local: &mut Vec<LocalFunction>,
+    type_function: &bool,
+    who: &str
 ) {
     println!("CORPO DO ESCOPO: {} |\n {:?}", father_id, &scope);
     for line in &*scope.lines {
@@ -262,6 +270,8 @@ fn analyze_local_fn(
                     id_to_check,
                     scopes,
                     local,
+                    type_function,
+                    who
                 );
 
                 println!("RESTO DA LINHA COM ESCOPO: {}", &resto);
@@ -278,6 +288,8 @@ fn analyze_local_fn(
                         is_debug,
                         &format!("{} *SCOPE:{}", resto, id),
                         &scope.file,
+                        type_function,
+                        who,
                     );
 
                     println!(
@@ -320,6 +332,8 @@ fn unassemble_function(
     is_debug: &bool,
     content: &str,
     file: &str,
+    type_function: &bool,
+    who: &str,
 ) -> (Option<Vec<Parameter>>, u32, String, String) {
     let mut true_params: Option<Vec<Parameter>> = None;
     let true_name: String;
@@ -343,10 +357,25 @@ fn unassemble_function(
                 println!("PARAMETROS: {:?}", &params);
 
                 for p in params {
-                    let name_type: Vec<&str> = p.split(":").collect();
+                    let name: String;
+                    let types: String;
+
+                    if let Some((param, tipo)) = p.split_once(":"){
+                        name = param.to_string();
+                        types = tipo.to_string();
+
+                    }else{
+                        if *type_function{
+                            name = "Self".to_string();
+                            types = who.to_string();
+                        }else{
+                            kill("FUNCTION PARSING MALFUNCTION");
+                        }
+                    }
+
                     the_params.push(Parameter {
-                        var_name: name_type[0].to_string(),
-                        var_type: name_type[1].to_string(),
+                        var_name: name,
+                        var_type: types,
                     });
                 }
 
@@ -384,8 +413,11 @@ fn unassemble_function(
 }
 
 pub fn find_types(scopes: &mut Vec<Scopes>, resto: &mut Vec<Resto>, is_debug: &bool) {
-    let mut types: Vec<RawType> = Vec::new();
+    let mut raw_types: Vec<RawType> = Vec::new();
     let mut new_resto: Vec<Resto> = Vec::new();
+
+    let mut type_names: Vec<String> = Vec::new();
+
     for r in resto {
         if !r.content.contains("type") {
             new_resto.push(r.clone());
@@ -456,17 +488,20 @@ pub fn find_types(scopes: &mut Vec<Scopes>, resto: &mut Vec<Resto>, is_debug: &b
 
             let rt: RawType;
 
+            type_names.push(true_name.clone());
+
             if !paramless {
                 rt = extract(id, &r.file, scopes, &*is_debug, &true_name, is_public);
             } else {
                 rt = RawType {
+                    name: true_name,
                     public: is_public,
                     file: r.file.clone(),
                     fields: Vec::new(),
                 };
             }
 
-            types.push(rt);
+            raw_types.push(rt);
         } else {
             let error = format!("TYPE INTERNAL ERROR: BUILDING MALFUNCTION: {}", &r.file);
             kill(&error);
@@ -475,32 +510,69 @@ pub fn find_types(scopes: &mut Vec<Scopes>, resto: &mut Vec<Resto>, is_debug: &b
     //
 
     //TODO : EXTRAIR MÉTODOS DO TIPO
-    if *is_debug{
+    if *is_debug {
         println!("\nIMPLEMENTANDO FUNÇÕES \n");
     }
 
     let mut true_resto: Vec<Resto> = Vec::new();
 
+    let mut types: Vec<Type> = Vec::new();
+
     for r in new_resto {
-        if !r.content.starts_with("impl"){
+        if !r.content.starts_with("impl") {
             true_resto.push(r.clone());
-            continue
+            continue;
         }
+        println!("{}\n", r.content);
 
-        println!("{}", r.content);
+        let t = &r.content.replace(" ", "+")[5..];
+        if let Some((who, id)) = t.split_once("+*SCOPE:") {
+            if !type_names.contains(&who.to_string()) {
+                let error = format!(
+                    "TYPE IMPLEMENTATION ERROR: \"{}\" : {} \nTYPE NOT FOUND",
+                    r.content, &r.file
+                );
+                kill(&error);
+            }
 
-        //TODO: 
+            let error = format!(
+                "TYPE INTERNAL ERROR: PARSING MALFUNCTION : {} - {}",
+                r.content, r.file
+            );
+            let id: u32 = id.parse().expect(&error);
+            //println!("SCOPE ID: {}", id);
+
+            let internal_content = &scopes[id as usize];
+
+            println!("INTERNAL CONTENT: {:?}\n", &internal_content);
+
+            let mut inner_resto: Vec<Resto> = Vec::new();
+
+            for c in &internal_content.lines {
+                inner_resto.push(Resto {
+                    file: internal_content.file.clone(),
+                    content: c.to_string(),
+                })
+            }
+            let (a, b, _) = find_function(scopes, &mut inner_resto, is_debug, true, &who);
+
+            //TODO: 
+            for fun in a {
+                println!("\nFUNÇÕES EXTRAIDAS: {:?}", fun);
+            };
+            
+        }
     }
 }
 
 pub struct Type {
-    pub name: String,
     pub type_params: RawType,
     pub external_methods: Option<Vec<Function>>,
     pub internal_methods: Option<Vec<LocalFunction>>,
 }
 
 pub struct RawType {
+    pub name: String,
     pub public: bool,
     pub file: String,
     pub fields: Vec<Field>,
@@ -569,6 +641,7 @@ fn extract(
     }
 
     RawType {
+        name: true_name.to_string(),
         public,
         file: file.to_string(),
         fields: params,
