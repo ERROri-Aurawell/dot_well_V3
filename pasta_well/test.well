@@ -53,7 +53,8 @@ let e: MiniInt = { // 2
             return f
         },
         None => { // 4
-            Error("Tipo inválido")
+            sys.out.error("Tipo inválido");
+            return 0
         }
     };
 }
@@ -66,13 +67,22 @@ if (e >= 5){ // 2
 
 }
 
-public  type Palavra{ // 1
+public type Palavra{ // 1
     a: String,
     b: String,
     c: String
 }
 
-extend Palavra { // 1
+public  type Palavra2{ // 1
+   public a: String,
+    b: String,
+   public c: String
+}
+
+@Paramless
+public type out;
+
+impl Palavra { // 1
     public fn aMaiusculo(){
         let aa = self.aMinusculo();
         return aa.toUpperCase();

@@ -130,3 +130,9 @@ pub struct Resto{
     file: String,
     content: String
 }
+
+impl Resto {
+    pub fn clone(&self) -> Resto{
+        Resto { file: self.file.clone(), content: self.content.clone() }
+    }
+}

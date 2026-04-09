@@ -385,76 +385,86 @@ fn unassemble_function(
 
 pub fn find_types(scopes: &mut Vec<Scopes>, resto: &mut Vec<Resto>, is_debug: &bool) {
     let mut types: Vec<RawType> = Vec::new();
-
-    let mut new_new_line: Vec<Resto> = Vec::new();
+    let mut new_resto: Vec<Resto> = Vec::new();
     for r in resto {
         if !r.content.contains("type") {
-            new_new_line.push(Resto {
-                file: r.file.clone(),
-                content: r.content.clone(),
-            });
+            new_resto.push(r.clone());
             continue;
         };
-
-        println!("RESTO: {}", &r.content);
-
-        let is_public: bool;
-        let resto: String;
-        let true_name: String;
-
-        let mut params: Vec<Parameter> = Vec::new();
-
-        if let Some((_, tipo)) = r.content.split_once("public ") {
-            is_public = true;
-            resto = tipo[5..].to_string();
-        } else {
-            is_public = false;
-            resto = r.content[5..].to_string();
+        if *is_debug {
+            println!("\nFILTER: {}", &r.content);
         }
 
-        println!("RESTO NOVO:{}", &resto);
+        let is_public: bool;
+        let resto: &str;
+        let true_name: String; //
+        let pre_process: &str;
+        let paramless: bool;
 
-        let resto = resto.replace(" ", "");
+        if let Some((_, res)) = &r.content.split_once("@Paramless") {
+            pre_process = res;
+            paramless = true;
+        } else {
+            pre_process = &r.content;
+            paramless = false;
+        }
 
-        if let Some((nome, id)) = resto.split_once("*") {
+        let replace = pre_process.replace(" ", "+");
+
+        if let Some((_, tipo)) = replace.split_once("public+") {
+            is_public = true;
+            resto = tipo;
+        } else {
+            is_public = false;
+            resto = &replace;
+        }
+
+        if *is_debug {
+            println!("RESTO NOVO:{}", &resto);
+        }
+
+        /*
+        //Método se eu fosse ignorar palavras entre o public e o type
+        if let Some((_, tipo)) = resto.split_once("type+") {
+            resto = tipo;
+        }
+        */
+
+        let init: &str = &resto[0..5];
+
+        if *is_debug {
+            println!("INIT: {}", &init);
+        }
+
+        if init != "type+" {
+            let error = format!("TYPE SYNTAX ERROR: \"{}\" : {}", r.content, &r.file);
+            kill(&error);
+        }
+
+        let resto: String = if paramless {
+            let r: &str = &resto[5..];
+            format!("{}+", r)
+        } else {
+            resto[5..].to_string()
+        };
+
+        if let Some((nome, id)) = resto.split_once("+") {
+            if *is_debug {
+                println!("NAME: {}", &nome);
+            }
             true_name = nome.to_string();
 
-            let id: &str = &id[6..];
+            let rt: RawType;
 
-            let error = format!("TYPE INTERNAL ERROR: PARSING MALFUNCTION : {}", &r.file);
-            let id: u32 = id.parse().expect(&error);
-
-            let escopo_interno: &Scopes = &scopes[id as usize];
-
-            println!("{:?}", &escopo_interno);
-
-            let so_close_params: Vec<&str> = escopo_interno.lines[0].split(",").collect();
-
-            if so_close_params.is_empty() {
-                let error = format!(
-                    "TYPE SYNTAX ERROR: NO PARAMS FOUND: \"{}\" : {}",
-                    true_name, &r.file
-                );
-                kill(&error);
+            if !paramless {
+                rt = extract(id, &r.file, scopes, &*is_debug, &true_name, is_public);
+            } else {
+                rt = RawType {
+                    public: is_public,
+                    file: r.file.clone(),
+                    fields: Vec::new(),
+                };
             }
-
-            for s in so_close_params {
-                if let Some((name, type_of)) = s.split_once(":") {
-                    params.push(Parameter {
-                        var_name: name.to_string(),
-                        var_type: type_of.to_string(),
-                    })
-                } else {
-                    let error = format!("TYPE SYNTAX ERROR: \"{}\" : {}", true_name, &r.file);
-                    kill(&error);
-                }
-            }
-
-            let rt = RawType {
-                public: is_public,
-                file: r.file.clone(),
-                fields: params,
-            };
 
             types.push(rt);
         } else {
@@ -465,9 +475,26 @@ pub fn find_types(scopes: &mut Vec<Scopes>, resto: &mut Vec<Resto>, is_debug: &b
     //
 
     //TODO : EXTRAIR MÉTODOS DO TIPO
+    if *is_debug{
+        println!("\nIMPLEMENTANDO FUNÇÕES \n");
+    }
+
+    let mut true_resto: Vec<Resto> = Vec::new();
+
+    for r in new_resto {
+        if !r.content.starts_with("impl"){
+            true_resto.push(r.clone());
+            continue
+        }
+
+        println!("{}", r.content);
+
+        //TODO: 
+    }
 }
 
 pub struct Type {
+    pub name: String,
     pub type_params: RawType,
     pub external_methods: Option<Vec<Function>>,
     pub internal_methods: Option<Vec<LocalFunction>>,
@@ -476,5 +503,74 @@ pub struct Type {
 pub struct RawType {
     pub public: bool,
     pub file: String,
-    pub fields: Vec<Parameter>,
+    pub fields: Vec<Field>,
+}
+
+pub struct Field {
+    pub public: bool,
+    pub var_name: String,
+    pub var_type: String,
+}
+
+fn extract(
+    id: &str,
+    file: &str,
+    scopes: &mut Vec<Scopes>,
+    is_debug: &bool,
+    true_name: &str,
+    public: bool,
+) -> RawType {
+    let id: &str = &id[7..];
+    let error = format!("TYPE INTERNAL ERROR: PARSING MALFUNCTION : {}", file);
+    let id: u32 = id.parse().expect(&error);
+
+    let escopo_interno: &Scopes = &scopes[id as usize];
+    if *is_debug {
+        println!("\nESCOPO INTERNO: {:?}", &escopo_interno);
+    }
+
+    let so_close_params: Vec<&str> = escopo_interno.lines[0].split(",").collect();
+    if so_close_params.is_empty() {
+        let error = format!(
+            "TYPE SYNTAX ERROR: NO PARAMS FOUND: \"{}\" : {}",
+            true_name, file
+        );
+        kill(&error);
+    }
+
+    let mut params: Vec<Field> = Vec::new();
+
+    for s in so_close_params {
+        if let Some((name, type_of)) = s.split_once(":") {
+            let true_name: String;
+            let public: bool;
+
+            //println!("\nINTERN NAME:{}", &name);
+
+            if let Some((_, name)) = name.replace(" ", "+").split_once("public+") {
+                //println!("INTERN NAME_2:{}", &name);
+
+                true_name = name.to_string().replace("+", "");
+                public = true
+            } else {
+                true_name = name.to_string().replace("+", "");
+                public = false
+            }
+
+            params.push(Field {
+                public,
+                var_name: true_name,
+                var_type: type_of.to_string(),
+            });
+        } else {
+            let error = format!("TYPE SYNTAX ERROR: \"{}\" : {}", true_name, &file);
+            kill(&error);
+        }
+    }
+
+    RawType {
+        public,
+        file: file.to_string(),
+        fields: params,
+    }
 }
