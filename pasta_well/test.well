@@ -1,6 +1,8 @@
 import                    ./outro_arquivo.well;
 import ./outro_arquvo_ainda.well;
 
+import ./std.well;
+
 //0
 
 public fn funcaoantesdomainsopraquebraroclima(){
@@ -79,14 +81,11 @@ public type Palavra{ // 1
     c: String
 }
 
-public  type Palavra2{ // 1
+public type Palavra2{ // 1
    public a: String,
     b: String,
    public c: String
 }
-
-@Paramless
-public type out;
 
 impl Palavra { // 1
     public fn aMaiusculo(self){

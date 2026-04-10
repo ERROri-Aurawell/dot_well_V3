@@ -1,0 +1,74 @@
+@Interact
+public type Array{
+    content : %RawArray<%Any>
+}
+
+impl Array {
+    $ShowArray
+    public fn show_array(self) -> %RawArray<%Any> {
+        return self.content;
+    }
+
+    public fn join(self) -> String{
+        return *internal:array:1:(self.content);
+    }
+
+    public fn len(self) -> Int{
+        return *internal:array:1:(self.content);
+    }
+}
+
+type String { 
+    content : Array<%RawString>
+}
+
+impl String{
+    $Show
+    public fn show(self) -> %RawString {
+        return self.content.join()
+    }
+
+    $ShowArray
+    public fn show_array(self) ->  Array<%RawString> {
+        return self.content
+    }
+
+    public fn toUpperCase(self) -> %RawString{
+        return *internal:text:1:(self.content.join());
+    }
+
+    public fn toLowerCase(self) -> RawString{
+        return *internal:text:2:(self.content.join());
+    }
+}
+
+public type Sys {
+    out: Out,
+    in: In
+}
+
+@ParamLess
+public type In{};
+
+impl In{
+    public fn read(){
+        return *internal:console:input:1:();
+    }
+}
+
+@ParamLess
+public type Out{};
+
+impl Out{
+    public fn log(input: %any){
+        *internal:console:output:1:(input);
+    }
+
+    public fn warn(input: %any){
+        *internal:console:output:2:(input);
+    }
+
+    public fn error(input: %any){
+        *internal:console:output:3:(input);
+    }
+}
