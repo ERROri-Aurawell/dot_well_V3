@@ -5,7 +5,7 @@ import ./std.well;
 
 //0
 
-public fn funcaoantesdomainsopraquebraroclima(){
+public fn funcaoAntesDoMainSoPraQuebrarOClima(){
     //não tem nada aqui
     ?
 }

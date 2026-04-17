@@ -118,21 +118,18 @@ pub enum DataTypes {
     Type,
 }
 
+#[derive(Clone)]
 #[derive(Debug)]
 pub struct Scopes{
     pub depth: u32,
     pub lines: Vec<String>,
     pub file: String,
+    pub functions: Option<Vec<finders::find::Functions>>
 }
 
+#[derive(Clone)]
 #[derive(Debug)]
 pub struct Resto{
     file: String,
     content: String
-}
-
-impl Resto {
-    pub fn clone(&self) -> Resto{
-        Resto { file: self.file.clone(), content: self.content.clone() }
-    }
 }

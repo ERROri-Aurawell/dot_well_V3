@@ -41,6 +41,7 @@ pub fn find_scopes(
                 depth: profundidade as u32,
                 lines: Vec::new(),
                 file: file.to_string(),
+                functions: None,
             };
 
             escopos.push(scope);
@@ -106,314 +107,6 @@ pub fn find_imports(linhas: Vec<Resto>, master: &bool, path: &Path) -> (Vec<Path
     }
 
     (files_to_import, novo_resto)
-}
-
-pub fn find_function(
-    scopes: &mut Vec<Scopes>,
-    resto: &mut Vec<Resto>,
-    is_debug: &bool,
-    type_function: bool,
-    who: &str,
-) -> (Vec<Function>, Vec<LocalFunction>, Vec<Resto>, Vec<SpecialFunctions>) {
-    let mut global: Vec<Function> = Vec::new(); // Funções globais (do arquivo/projeto)
-    let mut local: Vec<LocalFunction> = Vec::new(); //Funções locais
-    let mut new_resto: Vec<Resto> = Vec::new(); //O restante da global.
-
-    let spe: Vec<SpecialFunctions> = analyze_fn(
-        &is_debug,
-        resto,
-        &mut global,
-        &mut new_resto,
-        &type_function,
-        &who,
-    );
-
-    for f in &global {
-        analyze_local_fn(
-            is_debug,
-            &scopes[f.body_scope_id as usize],
-            f.body_scope_id,
-            &scopes,
-            &mut local,
-            &type_function,
-            who,
-        );
-    }
-    if *is_debug {
-        println!("\n\n-------------");
-        for f in &global {
-            println!("\nFUNÇÃO: {:?}", f);
-        }
-
-        for f in &local {
-            println!("\nFUNÇÃO LOCAL: {:?}", f);
-        }
-    }
-
-    (global, local, new_resto, spe)
-}
-
-#[derive(Debug)]
-pub struct Parameter {
-    pub var_name: String,
-    pub var_type: String,
-}
-
-#[derive(Debug)]
-pub struct Function {
-    pub name: String,
-    pub params: Option<Vec<Parameter>>,
-    pub body_scope_id: u32,
-    pub public: bool,
-    pub return_type: String,
-    pub file: String,
-}
-
-#[derive(Debug)]
-pub struct LocalFunction {
-    pub function: Function,
-    pub father: u32,
-}
-
-fn analyze_fn(
-    is_debug: &bool,
-    resto: &mut Vec<Resto>,
-    global: &mut Vec<Function>,
-    new_resto: &mut Vec<Resto>,
-    type_function: &bool,
-    who: &str,
-) -> Vec<SpecialFunctions> {
-    let mut special_functions: Vec<SpecialFunctions> = Vec::new();
-
-    for f in resto {
-        /*
-        if f.content.starts_with("public") {
-            content = &f.content[7..];
-            public = true;
-            } else {
-                content = &f.content;
-                public = false;
-                }
-                */
-
-        if !f.content.contains("fn") {
-            new_resto.push(Resto {
-                file: f.file.clone(),
-                content: f.content.clone(),
-            });
-
-            continue;
-        }
-
-        let mut content: &String = &f.content.replace(" ", "+");
-        let special: &str;
-        let is_public: bool;
-
-        /* 
-        if f.content.starts_with("$") {
-            println!("---------------------\n\nFUNÇÃO: {}", &f.content);
-            
-            if f.content.starts_with("$ShowArray") {
-                special = "$ShowArray";
-                content = &f.content[11..];
-                
-                println!("{content}\n\n");
-            } else if f.content.starts_with("$Show") {
-                special = "$Show";
-                content = &f.content[6..];
-                
-                println!("{content}\n\n");
-            } else {
-                let error = format!("");
-                kill(&error);
-            }
-        } else {
-            special = "";
-            content = &f.content;
-        }
-        
-        if content.starts_with("public") {
-            public = true;
-            content = &content[7..];
-            println!("{content}\n\n");
-        } else {
-            public = false;
-        }
-        
-        let content = &content[3..];
-        */
-
-        let to_extract: String;
-        let res: &str;
-
-        if let Some((resto, nome)) = content.split_once("fn+"){
-            to_extract = nome.to_string();
-            res = resto;
-        }else{
-            let error = format!("KILLED BY {}", content);
-            kill(&error);
-        }
-        let restos: String;
-
-        if let Some((resto, _)) = res.split_once("public+"){
-            is_public = true;
-            let ret = resto.replace("+", "");
-            restos = ret.clone();
-        }else {
-            is_public = false;
-            restos = res.to_string();
-        }
-
-        if restos.starts_with("$"){
-            special = &restos;
-        }else{
-            special = "";
-        }
-
-        println!("{content}\n\n");
-
-        let (params, body_scope_id, name, return_type): (
-            Option<Vec<Parameter>>,
-            u32,
-            String,
-            String,
-        ) = unassemble_function(is_debug, &to_extract, &f.file, type_function, who);
-
-        let nf = Function {
-            name: name.clone(),
-            params,
-            body_scope_id,
-            public: is_public,
-            return_type,
-            file: f.file.clone(),
-        };
-
-        for g in &*global {
-            if g.name == name && (g.public && is_public || g.file == f.file) {
-                let mut public_g = "";
-                let mut public_n = "";
-
-                if g.public {
-                    public_g = "public ";
-                }
-
-                if is_public {
-                    public_n = "public "
-                }
-                let error = format!(
-                    "TWO OR MORE PUBLIC/GLOBAL FUNCTIONS CANNOT HAVE THE SAME NAME. \n| {}{} | & | {}{} |\nFILE: {}",
-                    public_g, g.name, public_n, name, f.file
-                );
-                kill(&error);
-            }
-        }
-        global.push(nf);
-        if !special.is_empty() {
-            special_functions.push(SpecialFunctions {
-                function_name: name.clone(),
-                special: special.to_string(),
-            })
-        }
-    }
-
-    special_functions
-}
-
-pub struct SpecialFunctions {
-    pub function_name: String,
-    pub special: String,
-}
-
-fn analyze_local_fn(
-    is_debug: &bool,
-    scope: &Scopes,
-    father_id: u32,
-    scopes: &Vec<Scopes>,
-    local: &mut Vec<LocalFunction>,
-    type_function: &bool,
-    who: &str,
-) {
-    println!("CORPO DO ESCOPO: {} |\n {:?}", father_id, &scope);
-    for line in &*scope.lines {
-        //println!("\nLINE: {}", &l);
-        if line.starts_with("public") {
-            let msg = format!(
-                "A INTERNAL SCOPE CANNOT HAVE A PUBLIC DECLARATION | FILE: {}",
-                &scope.file
-            );
-            kill(&msg);
-        };
-
-        if line.contains("*SCOPE:") {
-            println!("\nLINHA DE ALGUM ESCOPO: {}", &line);
-
-            if let Some((mut resto, id)) = line.split_once("*SCOPE:") {
-                let id_to_check: u32 = id
-                    .parse()
-                    .expect("FUNCTION INTERNAL ERROR: PARSING MALFUNCTION");
-
-                analyze_local_fn(
-                    is_debug,
-                    &scopes[id_to_check as usize],
-                    id_to_check,
-                    scopes,
-                    local,
-                    type_function,
-                    who,
-                );
-
-                println!("RESTO DA LINHA COM ESCOPO: {}", &resto);
-
-                if resto.starts_with("fn") {
-                    resto = &resto[3..];
-
-                    let (params, body_scope_id, name, return_type): (
-                        Option<Vec<Parameter>>,
-                        u32,
-                        String,
-                        String,
-                    ) = unassemble_function(
-                        is_debug,
-                        &format!("{} *SCOPE:{}", resto, id),
-                        &scope.file,
-                        type_function,
-                        who,
-                    );
-
-                    println!(
-                        "{:?} {} {} {}",
-                        &params, &body_scope_id, &name, &return_type
-                    );
-
-                    let nf = Function {
-                        name: name.clone(),
-                        params,
-                        body_scope_id,
-                        public: false,
-                        return_type,
-                        file: scope.file.clone(),
-                    };
-
-                    let nf = LocalFunction {
-                        function: nf,
-                        father: father_id,
-                    };
-
-                    for f in &*local {
-                        if f.function.name == name && f.father == father_id {
-                            let error = format!(
-                                "-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-\nTWO OR MORE LOCAL FUNCTIONS CANNOT HAVE THE SAME NAME.\n| {} | & | {} |\nFILE: {}",
-                                f.function.name, name, scope.file
-                            );
-                            kill(&error);
-                        }
-                    }
-
-                    local.push(nf);
-                }
-            }
-        }
-    }
 }
 
 fn unassemble_function(
@@ -497,6 +190,176 @@ fn unassemble_function(
     };
 
     (true_params, true_id, true_name, true_return)
+}
+
+#[derive(Debug, Clone)]
+pub struct Functions {
+    pub name: String,
+    pub params: Option<Vec<Parameter>>,
+    pub body_scope_id: u32,
+    pub public: bool,
+    pub return_type: String,
+    pub file: String,
+    pub special: Option<String>,
+}
+#[derive(Debug, Clone)]
+pub struct Parameter {
+    pub var_name: String,
+    pub var_type: String,
+}
+
+pub fn return_functions(
+    scopes: &mut Vec<Scopes>,
+    resto: &mut Vec<Resto>,
+    is_debug: &bool,
+    type_function: bool,
+    who: &str,
+    scope_functions: &mut Vec<Functions>,
+    global: bool,
+) -> Vec<Resto> {
+    let mut new_resto: Vec<Resto> = Vec::new();
+
+    for f in resto {
+        if !f.content.contains("fn") {
+            new_resto.push(Resto {
+                file: f.file.clone(),
+                content: f.content.clone(),
+            });
+
+            continue;
+        }
+
+        let content: &String = &f.content.replace(" ", "+");
+
+        let special: Option<String>;
+        let is_public: bool;
+
+        let to_extract: String;
+        let res: &str;
+
+        if let Some((resto, nome)) = content.split_once("fn+") {
+            to_extract = nome.to_string();
+            res = resto;
+        } else {
+            let error = format!("KILLED BY {}", content);
+            kill(&error);
+        }
+        let restos: String;
+
+        if let Some((resto, _)) = res.split_once("public+") {
+            is_public = true;
+            let ret = resto.replace("+", "");
+            restos = ret.clone();
+
+            if !global & !type_function {
+                let erro = format!("YOU CANNOT CREATE A PUBLIC FUNCTION IN A LOCAL SCOPE");
+                kill(&erro)
+            }
+        } else {
+            is_public = false;
+            restos = res.to_string();
+        }
+
+        if restos.starts_with("$") {
+            special = Some(restos);
+        } else {
+            special = None;
+        }
+
+        //println!("CONTENT: {}", &to_extract);
+
+        let (params, body_scope_id, name, return_type): (
+            Option<Vec<Parameter>>,
+            u32,
+            String,
+            String,
+        ) = unassemble_function(is_debug, &to_extract, &f.file, &type_function, who);
+
+        for g in &*scope_functions {
+            if g.name == name && (g.public && is_public || g.file == f.file) {
+                let mut public_g = "";
+                let mut public_n = "";
+
+                if g.public {
+                    public_g = "public ";
+                }
+
+                if is_public {
+                    public_n = "public "
+                }
+                let error = format!(
+                    "TWO OR MORE PUBLIC/GLOBAL FUNCTIONS CANNOT HAVE THE SAME NAME. \n| {}{} | & | {}{} |\nFILE: {}",
+                    public_g, g.name, public_n, name, f.file
+                );
+                kill(&error);
+            }
+        }
+        //Chegando aqui é por que nada deu errado anteriormente
+
+        let nf = Functions {
+            name,
+            params,
+            body_scope_id,
+            public: is_public,
+            return_type,
+            file: f.file.clone(),
+            special,
+        };
+
+        scope_functions.push(nf);
+
+        //Eu preciso da recursividade agora
+        let intern_content = &scopes[body_scope_id as usize];
+        let mut intern_functions: Vec<Functions> = Vec::new();
+        let mut intern_resto: Vec<Resto> = Vec::new();
+
+        for l in &intern_content.lines {
+            intern_resto.push(Resto {
+                file: intern_content.file.clone(),
+                content: l.clone(),
+            });
+        }
+        let mut intern_scope: Scopes = intern_content.clone();
+
+        let scopes_intern_new_lines: Vec<Resto> = return_functions(
+            scopes,
+            &mut intern_resto,
+            is_debug,
+            type_function,
+            who,
+            &mut intern_functions,
+            false,
+        );
+
+        for f in &intern_functions {
+            //println!("\nINTERNAL FUNCTIONS: \n---\n{:#?}\n---", f);
+        }
+
+        let mut stringfy: Vec<String> = Vec::new();
+        for s in scopes_intern_new_lines {
+            stringfy.push(s.content);
+        }
+        intern_scope.lines = stringfy;
+
+        match &intern_scope.functions {
+            None => {
+                if !intern_functions.is_empty() {
+                    intern_scope.functions = Some(intern_functions);
+                }
+            }
+            Some(s) => {
+                if !intern_functions.is_empty() {
+                    let mut new_value: Vec<Functions> = s.to_vec();
+                    new_value.append(&mut intern_functions);
+                    intern_scope.functions = Some(new_value);
+                }
+            }
+        }
+
+        scopes[body_scope_id as usize] = intern_scope;
+    }
+
+    new_resto
 }
 
 pub fn find_types(scopes: &mut Vec<Scopes>, resto: &mut Vec<Resto>, is_debug: &bool) {
@@ -597,7 +460,7 @@ pub fn find_types(scopes: &mut Vec<Scopes>, resto: &mut Vec<Resto>, is_debug: &b
                     name: true_name,
                     public: is_public,
                     file: r.file.clone(),
-                    fields: Vec::new(),
+                    fields: None,
                 };
             }
 
@@ -654,32 +517,39 @@ pub fn find_types(scopes: &mut Vec<Scopes>, resto: &mut Vec<Resto>, is_debug: &b
                     content: c.to_string(),
                 })
             }
-            let (a, b, _, spe) = find_function(scopes, &mut inner_resto, is_debug, true, &who);
 
-            //TODO:
-            for fun in a {
-                println!("\nFUNÇÕES EXTRAIDAS: {:?}", fun);
+            let mut global_functions: Vec<Functions> = Vec::new();
+
+            let new_resto: Vec<Resto> = return_functions(
+                scopes,
+                &mut inner_resto,
+                is_debug,
+                true,
+                &who,
+                &mut global_functions,
+                true,
+            );
+
+            for fun in global_functions {
+                println!("\nFUNÇÕES EXTRAIDAS: {:#?}", fun);
             }
 
-            for spec in spe{
-                println!("SPECIAL: {} - {}", spec.function_name, spec.special);
-            }
+            //TODO: TERMINAR ESSA PORCARIA
+       
         }
     }
 }
 
 pub struct Type {
     pub type_params: RawType,
-    pub external_methods: Option<Vec<Function>>,
-    pub internal_methods: Option<Vec<LocalFunction>>,
-    pub special_functions: Option<Vec<SpecialFunctions>>,
+    pub methods: Option<Vec<Functions>>,
 }
 
 pub struct RawType {
     pub name: String,
     pub public: bool,
     pub file: String,
-    pub fields: Vec<Field>,
+    pub fields: Option<Vec<Field>>,
 }
 
 pub struct Field {
@@ -748,6 +618,6 @@ fn extract(
         name: true_name.to_string(),
         public,
         file: file.to_string(),
-        fields: params,
+        fields: Some(params),
     }
 }
