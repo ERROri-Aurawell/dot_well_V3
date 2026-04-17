@@ -362,7 +362,11 @@ pub fn return_functions(
     new_resto
 }
 
-pub fn find_types(scopes: &mut Vec<Scopes>, resto: &mut Vec<Resto>, is_debug: &bool) {
+pub fn find_types(
+    scopes: &mut Vec<Scopes>,
+    resto: &mut Vec<Resto>,
+    is_debug: &bool,
+) -> (Vec<Resto>, Vec<Type>) {
     let mut raw_types: Vec<RawType> = Vec::new();
     let mut new_resto: Vec<Resto> = Vec::new();
 
@@ -472,7 +476,6 @@ pub fn find_types(scopes: &mut Vec<Scopes>, resto: &mut Vec<Resto>, is_debug: &b
     }
     //
 
-    //TODO : EXTRAIR MÉTODOS DO TIPO
     if *is_debug {
         println!("\nIMPLEMENTANDO FUNÇÕES \n");
     }
@@ -503,7 +506,6 @@ pub fn find_types(scopes: &mut Vec<Scopes>, resto: &mut Vec<Resto>, is_debug: &b
                 r.content, r.file
             );
             let id: u32 = id.parse().expect(&error);
-            //println!("SCOPE ID: {}", id);
 
             let internal_content = &scopes[id as usize];
 
@@ -536,10 +538,8 @@ pub fn find_types(scopes: &mut Vec<Scopes>, resto: &mut Vec<Resto>, is_debug: &b
                 }
             }
 
-            //TODO: TERMINAR ESSA PORCARIA
-
             for func in global_functions {
-                    methods_map.entry(who.to_string()).or_default().push(func);
+                methods_map.entry(who.to_string()).or_default().push(func);
             }
         }
     }
@@ -550,14 +550,12 @@ pub fn find_types(scopes: &mut Vec<Scopes>, resto: &mut Vec<Resto>, is_debug: &b
             let name = raw.name.clone();
             Type {
                 type_params: raw,
-                methods: methods_map.remove(&name), // Pega o balde pronto!
+                methods: methods_map.remove(&name),
             }
         })
         .collect();
 
-    for f in &final_types{
-        println!("TYPES: {:#?}", f);
-    }
+    (true_resto, final_types)
 }
 
 #[derive(Debug, Clone)]

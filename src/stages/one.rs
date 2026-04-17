@@ -1,8 +1,6 @@
 use crate::text_to_vec::prepare_terrain::prepare_to_parse;
 
-use crate::finders::find::{
-    Functions, find_imports, find_scopes, find_types, return_functions,
-};
+use crate::finders::find::{Functions, find_imports, find_scopes, find_types, return_functions};
 
 use std::fs;
 
@@ -178,7 +176,13 @@ pub fn first_one(
     }
 
     // 1.6 Tipos e Extensões
-    find_types(scopes, novo_resto, &is_debug);
-    /* 
-    */
+    let (resto, types) = find_types(scopes, novo_resto, &is_debug);
+
+    *novo_resto = resto;
+
+    if *is_debug {
+        for f in &types {
+            println!("TYPES: {:#?}", f);
+        }
+    }
 }
