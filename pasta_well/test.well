@@ -88,12 +88,12 @@ public type Palavra2{ // 1
 }
 
 impl Palavra { // 1
-    public fn aMaiusculo(self){
+    public fn aMaiusculo(self) -> String{
         let aa = self.aMinusculo();
         return aa.toUpperCase();
     }
 
-    fn aMinusculo(self){
+    fn aMinusculo(self) -> String{
         return self.a.toLowerCase();
     }
 }

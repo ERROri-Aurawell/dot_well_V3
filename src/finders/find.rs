@@ -479,7 +479,7 @@ pub fn find_types(scopes: &mut Vec<Scopes>, resto: &mut Vec<Resto>, is_debug: &b
 
     let mut true_resto: Vec<Resto> = Vec::new();
 
-    let mut types: Vec<Type> = Vec::new();
+    let mut methods_map: HashMap<String, Vec<Functions>> = HashMap::new();
 
     for r in new_resto {
         if !r.content.starts_with("impl") {
@@ -520,7 +520,7 @@ pub fn find_types(scopes: &mut Vec<Scopes>, resto: &mut Vec<Resto>, is_debug: &b
 
             let mut global_functions: Vec<Functions> = Vec::new();
 
-            let new_resto: Vec<Resto> = return_functions(
+            let _new_resto: Vec<Resto> = return_functions(
                 scopes,
                 &mut inner_resto,
                 is_debug,
@@ -530,28 +530,49 @@ pub fn find_types(scopes: &mut Vec<Scopes>, resto: &mut Vec<Resto>, is_debug: &b
                 true,
             );
 
-            for fun in global_functions {
-                println!("\nFUNÇÕES EXTRAIDAS: {:#?}", fun);
+            if *is_debug {
+                for fun in &global_functions {
+                    println!("\nFUNÇÕES EXTRAIDAS DO :  {} : {:#?}", &who, &fun);
+                }
             }
 
             //TODO: TERMINAR ESSA PORCARIA
-       
+
+            for func in global_functions {
+                    methods_map.entry(who.to_string()).or_default().push(func);
+            }
         }
+    }
+
+    let final_types: Vec<Type> = raw_types
+        .into_iter()
+        .map(|raw| {
+            let name = raw.name.clone();
+            Type {
+                type_params: raw,
+                methods: methods_map.remove(&name), // Pega o balde pronto!
+            }
+        })
+        .collect();
+
+    for f in &final_types{
+        println!("TYPES: {:#?}", f);
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Type {
     pub type_params: RawType,
     pub methods: Option<Vec<Functions>>,
 }
-
+#[derive(Debug, Clone)]
 pub struct RawType {
     pub name: String,
     pub public: bool,
     pub file: String,
     pub fields: Option<Vec<Field>>,
 }
-
+#[derive(Debug, Clone)]
 pub struct Field {
     pub public: bool,
     pub var_name: String,
