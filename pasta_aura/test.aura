@@ -1,36 +1,56 @@
-.values:
+.system
 NEW A1;
 NEW A2;
 NEW A3;
 NEW A4;
+NEW A5;
 
-_C1:
-MOVE "bacana", A2;
+.strings
+"bacana";
+"carambolas";
+
+.values 
+
+_C1: 
+MOVE %0, A2;
 MOVE 1, A1;
 CALL;
-MOVE true, A2;
-MOVE *D1, A3;
-MOVE 3, A1;
+
+MOVE 3, A1; 
+MOVE 1, A2; 
+MOVE _C2, A3;
 CALL;
 
 _main:
 NEW B1;
-MOVE 1, B1;
-MOVE "$B1 == 1", A2;
-MOVE 2, A1;
+MOVE 1, B1; 
+MOVE $B1, A2;
+MOVE 1, A3; 
+MOVE 1, A4; 
+MOVE 4, A1;
 CALL;
-MOVE A4, A2;
+MOVE A5, A2;
+
+MOVE 1, A1; 
+CALL;
+
+MOVE 3, A1; 
+MOVE _C1, A3; 
+CALL;
+
 MOVE 1, A1;
+MOVE %1, A2;
 CALL;
-MOVE 3, A1;
-MOVE _C1, A3;
-CALL;
-*D1:
+
+_C2: 
 MOVE 60, A1;
 MOVE 0, A2;
 CALL;
 
-//# - Console log
-//"true"
-//"bacana"
-// Stopped With Code 0
+--------------------------------------------
+# - Console
+"1"
+"bacana"
+
+
+Estou criando um interpretador para um bytecode que se assemelha a linguagem de montagem. Tente adivinhar o que cada coisa significa sem o arquivo de contexto

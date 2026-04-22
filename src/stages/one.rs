@@ -1,6 +1,6 @@
 use crate::text_to_vec::prepare_terrain::prepare_to_parse;
 
-use crate::finders::find::{Functions, find_imports, find_scopes, find_types, return_functions};
+use crate::finders::find::{Functions, Type, find_imports, find_scopes, find_types, return_functions};
 
 use std::fs;
 
@@ -19,19 +19,18 @@ pub fn first_one(
     father_path: &Path,
     path: &String,
     is_debug: &bool,
-    first: &bool,
     imported_files: &mut Vec<String>,
     strings: &mut Vec<String>,
     scopes: &mut Vec<Scopes>,
     novo_resto: &mut Vec<Resto>,
     is_master: &mut bool,
-) {
-    let mut resto: Vec<Resto> = Vec::new();
-
+) -> Option<(Vec<Type>, Vec<Functions>)>{
+    
     // Estágio 1.1: Limpeza e Substituição de Strings.
     let lines: Vec<String> = prepare_to_parse(content, *is_debug, strings);
-
+    
     // Estágio 1.2: Identificação de Escopos (Substitui blocos por tokens SCOPE:X).
+    let mut resto: Vec<Resto> = Vec::new();
     find_scopes(lines, scopes, &mut resto, &path);
 
     if *is_debug {
@@ -83,10 +82,9 @@ pub fn first_one(
     }
 
     if !*is_master {
-        return;
+        return None;
     }
 
-    //println!("QUANTAS VEZES EU VOU SER CHAMADO?????\n------\n------\n-------\n\n");
     // Apenas o arquivo Master (raiz) pode iniciar o processo de importação em cascata.
     *is_master = false;
 
@@ -122,7 +120,6 @@ pub fn first_one(
                 father_path,
                 &path,
                 is_debug,
-                first,
                 imported_files,
                 strings,
                 scopes,
@@ -185,4 +182,6 @@ pub fn first_one(
             println!("TYPES: {:#?}", f);
         }
     }
+
+    Some((types, global_functions))
 }

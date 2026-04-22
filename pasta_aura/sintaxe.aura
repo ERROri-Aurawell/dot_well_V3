@@ -1,0 +1,94 @@
+.system //Coisas *do interpretador*
+NEW A1; //Tipo da chamada.
+NEW A2; //Entrada primária.
+NEW A3; //Entrada secundária.
+NEW A4; //Entrada terciária.
+NEW A5; //Resposta do interpretador.
+
+
+// 1 - Print
+// A1 - tipo
+// A2 - Conteúdo
+
+// 2 - 
+//
+
+// 3 - IF TRUE - Execute
+// A1 - tipo
+// A2 - true/false
+// A3 - Endereço
+
+// 4 - Expressão booleana
+// A1 - tipo
+// A2 - entrada 1
+// A3 - operador
+// A4 - entrada 2
+//
+// A3:
+// 1 - ==
+// 2 - !=
+// 3 - >
+// 4 - <
+// 5 - >=
+// 6 - <=
+// 7 - ||
+// 8 - &&
+
+// 60 - Para a execussão
+// A1 - tipo
+//
+
+.strings
+"bacana";
+"carambolas";
+
+.values //Valores do usuário devem aparecer/sumir daqui em tempo de execução
+//Eu não vou representar quando o B1 some ou aparece, imagine que no NEW ele surja e no RM ele suma.
+//Isso é manipulado pelo interpretador.
+
+_C1: //Funções.
+MOVE %0, A2; //O valor da pilha de strings na posição 0;
+MOVE 1, A1; //Print
+CALL;
+
+MOVE 3, A1; // Operação de jump
+MOVE 1, A2; // Literal "1" (que no caso, é true)
+MOVE _C2, A3; //O endereço
+CALL;
+
+_main:
+NEW B1;
+MOVE 1, B1; //Literal "1" (que no caso, é true)
+MOVE $B1, A2; //Põe o b1 na primeira posição
+MOVE 1, A3; //Operador de igualdade
+MOVE 1, A4; //Literal "1" (que no caso, é true)
+MOVE 4, A1;
+CALL;
+MOVE A5, A2; //Resposta da operação movida para o A2
+
+MOVE 1, A1; //1 - Print.
+CALL; //Imprime o que está dentro do A2
+
+MOVE 3, A1; // IF TRUE.
+MOVE _C1, A3; //Aponta o endereço.
+//A2 já possui o valor que precisamos nesse momento (1/true).
+CALL;
+
+//Aqui só é executado caso o resultado seja falso
+
+MOVE 1, A1;
+MOVE %1, A2; //O valor da pilha de strings na posição 1;
+CALL;
+
+_C2: //Ponto de retorno
+//O código retorna para cá
+
+//Move 60 para o A1
+//Finalização de tipo 0 (sem erros)
+MOVE 60, A1;
+MOVE 0, A2;
+CALL;
+
+# - Console
+"1"
+"bacana"

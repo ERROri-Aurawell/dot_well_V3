@@ -1,11 +1,31 @@
+@Interact public type Option{
+    content: %RawOption<%Interact>
+}
+
+impl Option{
+    public fn unwrap(self) -> %Interact{
+        return *internal:option:unwrap:1:(self.content);
+    }
+
+    public fn unwrap_else(self, _else: %Interact) -> %Interact{
+        let _some = *internal:option:unwrap:2:(self.content);
+
+        if _some == None{
+            return _else;
+        } else{
+            return _some;
+        }
+    }
+}
+
 @Interact
 public type Array{
-    content : %RawArray<%Any>
+    content : %RawArray<%Interact>
 }
 
 impl Array {
     $ShowArray
-    public fn show_array(self) -> %RawArray<%Any> {
+    public fn show_array(self) -> %RawArray<%Interact> {
         return self.content;
     }
 
@@ -14,7 +34,7 @@ impl Array {
     }
 
     public fn len(self) -> Int{
-        return *internal:array:1:(self.content);
+        return *internal:array:2:(self.content);
     }
 }
 
@@ -34,11 +54,11 @@ impl String{
     }
 
     public fn toUpperCase(self) -> %RawString{
-        return *internal:text:1:(self.content.join());
+        return *internal:string:1:(self.content.join());
     }
 
     public fn toLowerCase(self) -> RawString{
-        return *internal:text:2:(self.content.join());
+        return *internal:string:2:(self.content.join());
     }
 }
 
@@ -48,10 +68,10 @@ public type Sys {
 }
 
 @ParamLess
-public type In{};
+public type In;
 
 impl In{
-    public fn read(){
+    public fn read() -> String{
         return *internal:console:input:1:();
     }
 }

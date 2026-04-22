@@ -115,3 +115,6 @@ public fn testeFuncao(var1:String, var2:String)-> Null { // 1
 }
 
 fn funcaoEmUmaLinha() -> Null {sys.out.log("textokk");sys.out.log("OUTRO TEXTO KK");} // 1
+
+
+palavra;

@@ -383,19 +383,26 @@ pub fn find_types(
 
         let is_public: bool;
         let resto: &str;
-        let true_name: String; //
+        let mut true_name: String; //
         let pre_process: &str;
         let paramless: bool;
         let interact: bool;
+
+        let special: Option<String>;
 
         if let Some((processor, res)) = r.content.split_once("@") {
             if res.starts_with("ParamLess") {
                 pre_process = &res[9..];
                 paramless = true;
+                interact = false;
+
+                special = Some(String::from("ParamLess"));
             } else if res.starts_with("Interact") {
                 pre_process = &res[7..];
                 paramless = false;
                 interact = true;
+
+                special = Some(String::from("Interact"));
             } else {
                 let error = format!(
                     "INVALID PROCESSOR: |{}|\n|{}|\n|{}|",
@@ -406,7 +413,14 @@ pub fn find_types(
         } else {
             pre_process = &r.content;
             paramless = false;
+            interact = false;
+
+            special = None;
         }
+
+        if interact == true && paramless == true {
+            kill("What?");
+        };
 
         let replace = pre_process.replace(" ", "+");
 
@@ -453,22 +467,31 @@ pub fn find_types(
             }
             true_name = nome.to_string();
 
+            if true_name.ends_with(";"){
+                true_name.pop();
+            };
+
             let rt: RawType;
 
-            type_names.push(true_name.clone());
+            type_names.push(true_name.trim().to_string());
 
             if !paramless {
-                rt = extract(id, &r.file, scopes, &*is_debug, &true_name, is_public);
+                rt = extract(id, &r.file, scopes, &*is_debug, &true_name, is_public, special);
             } else {
                 rt = RawType {
                     name: true_name,
                     public: is_public,
                     file: r.file.clone(),
                     fields: None,
+                    special 
                 };
             }
 
             raw_types.push(rt);
+
+            if *is_debug{
+                println!("CRIANDO TYPE: {}", nome);
+            }
         } else {
             let error = format!("TYPE INTERNAL ERROR: BUILDING MALFUNCTION: {}", &r.file);
             kill(&error);
@@ -493,7 +516,19 @@ pub fn find_types(
 
         let t = &r.content.replace(" ", "+")[5..];
         if let Some((who, id)) = t.split_once("+*SCOPE:") {
+
+            if *is_debug{
+                println!("PROCURANDO POR: '{}'", who);
+            }
+
             if !type_names.contains(&who.to_string()) {
+
+                if *is_debug{
+                    for t in type_names{
+                        println!("EXISTENTE: {}", t);
+                    }
+                }
+
                 let error = format!(
                     "TYPE IMPLEMENTATION ERROR: \"{}\" : {} \nTYPE NOT FOUND",
                     r.content, &r.file
@@ -569,6 +604,7 @@ pub struct RawType {
     pub public: bool,
     pub file: String,
     pub fields: Option<Vec<Field>>,
+    pub special: Option<String>
 }
 #[derive(Debug, Clone)]
 pub struct Field {
@@ -584,6 +620,7 @@ fn extract(
     is_debug: &bool,
     true_name: &str,
     public: bool,
+    special: Option<String>,
 ) -> RawType {
     let id: &str = &id[7..];
     let error = format!("TYPE INTERNAL ERROR: PARSING MALFUNCTION : {}", file);
@@ -638,5 +675,6 @@ fn extract(
         public,
         file: file.to_string(),
         fields: Some(params),
+        special
     }
 }
