@@ -7,7 +7,6 @@ import ./std.well;
 
 public fn funcaoAntesDoMainSoPraQuebrarOClima(){
     //não tem nada aqui
-    ?
 }
 
 //fn main(){}
@@ -37,6 +36,7 @@ fn funcaoDentroDoMain(){
 
     fn otafuncaodentrodomain(){
         //
+        let output: miniInt = sys.out.log("Texto kk");
     }
 
 sys.out.warn("sys.out.warn, fn, public, String, //, let, main(), texto pra saber se ele vai ignorar as strings ou não");
@@ -46,20 +46,22 @@ let d: String = c + "\nAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 let e: MiniInt = { // 2
     { //3
         sys.out.log("Escopo dentro de escopo, brabo"); 
+
+        @ParamLess type parabola;
     }
 
     let f: Option<MiniInt> = sys.in.read();
 
     match f { // 3
         Some(f) => { // 4
-            return f
+            return f;
         },
         None => { // 4
             sys.out.error("Tipo inválido");
-            return 0
-        }
+            return 0;
+        },
     };
-}
+};
 
 if (e >= 5){ // 2
     sys.out.log("Maior ou igual a 5!");
@@ -72,6 +74,16 @@ if (e >= 5){ // 2
 impl Palavra2{
     public fn palavra2(){
         sys.out.warn("Isso não faz nada");
+    }
+}
+
+@interact type palavra3{
+    ç: String
+}
+
+impl palavra3{
+    public fn palavra(){
+        //
     }
 }
 

@@ -86,7 +86,9 @@ fn main() {
     let mut resto: Vec<Resto> = Vec::new();
     let mut imported_files: Vec<String> = Vec::new();
 
-    let result: Option<(Vec<finders::find::Type>, Vec<finders::find::Functions>)> =
+    let result: Option<(Vec<finders::find::Type>, Vec<finders::find::Functions>)> = {
+        let mut father_id: Vec<usize> = Vec::new();
+
         stages::one::first_one(
             content,
             &father_path,
@@ -97,7 +99,9 @@ fn main() {
             &mut scopes,
             &mut resto,
             &mut is_master,
-        );
+            &mut father_id
+        )
+    };
 
     let error: &str = "What?";
     let (types, functions): (Vec<Type>, Vec<Functions>) = result.unwrap_or_else(|| kill(error));
@@ -164,10 +168,11 @@ pub enum DataTypes {
 
 #[derive(Clone, Debug)]
 pub struct Scopes {
-    pub depth: u32,
     pub lines: Vec<String>,
     pub file: String,
+    pub father_id: Option<usize>,
     pub functions: Option<Vec<finders::find::Functions>>,
+    pub types: Option<Vec<finders::find::Type>>,
 }
 
 #[derive(Clone, Debug)]

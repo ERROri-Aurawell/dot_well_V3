@@ -1,6 +1,8 @@
 use crate::text_to_vec::prepare_terrain::prepare_to_parse;
 
-use crate::finders::find::{Functions, Type, find_imports, find_scopes, find_types, return_functions};
+use crate::finders::find::{
+    Functions, Type, find_imports, find_scopes, find_types, return_functions,
+};
 
 use std::fs;
 
@@ -24,14 +26,14 @@ pub fn first_one(
     scopes: &mut Vec<Scopes>,
     novo_resto: &mut Vec<Resto>,
     is_master: &mut bool,
-) -> Option<(Vec<Type>, Vec<Functions>)>{
-    
+    father_id: &mut Vec<usize>,
+) -> Option<(Vec<Type>, Vec<Functions>)> {
     // Estágio 1.1: Limpeza e Substituição de Strings.
     let lines: Vec<String> = prepare_to_parse(content, *is_debug, strings);
-    
+
     // Estágio 1.2: Identificação de Escopos (Substitui blocos por tokens SCOPE:X).
     let mut resto: Vec<Resto> = Vec::new();
-    find_scopes(lines, scopes, &mut resto, &path);
+    find_scopes(lines, scopes, &mut resto, &path, father_id);
 
     if *is_debug {
         println!("\n--- TABELA DE STRINGS ---");
@@ -41,10 +43,7 @@ pub fn first_one(
 
         println!("\n--- ESCOPOS IDENTIFICADOS ---");
         for (c, s) in scopes.iter().enumerate() {
-            println!(
-                "ID: {:3} | Profundidade: {} | Arquivo: {}",
-                c, s.depth, s.file
-            );
+            println!("ID: {:3} | Arquivo: {}", c, s.file);
             for line in &s.lines {
                 println!("  | {}", line);
             }
@@ -125,6 +124,7 @@ pub fn first_one(
                 scopes,
                 novo_resto,
                 is_master,
+                father_id,
             );
         }
     }
@@ -134,8 +134,10 @@ pub fn first_one(
     // Estágio 1.5: Públicos válidos e funções
 
     if *is_debug {
+        let mut contador: usize = 0;
         for global in &*scopes {
-            println!("SCOPE: {:#?}", global);
+            contador = contador + 1;
+            println!("SCOPE {}: {:#?}", contador - 1, global);
         }
 
         println!("\n");
@@ -173,7 +175,7 @@ pub fn first_one(
     }
 
     // 1.6 Tipos e Extensões
-    let (resto, types) = find_types(scopes, novo_resto, &is_debug);
+    let (resto, types) = find_types(scopes, novo_resto, &is_debug, true);
 
     *novo_resto = resto;
 
@@ -181,7 +183,35 @@ pub fn first_one(
         for f in &types {
             println!("TYPES: {:#?}", f);
         }
+
+        println!("\n\nIMPLEMENTANDO TIPOS POR ESCOPO\n");
     }
 
+    for (id, esc) in scopes.clone().iter().enumerate() {
+        let mut esc_como_resto: Vec<Resto> = Vec::new();
+
+        for l in esc.lines.clone() {
+            esc_como_resto.push(Resto {
+                file: esc.file.clone(),
+                content: l.clone(),
+            })
+        }
+
+        let (conteudo, tipos) = find_types(scopes, &mut esc_como_resto, &is_debug, false);
+
+        let mut resto_como_conteudo: Vec<String> = Vec::new();
+
+        for c in conteudo {
+            resto_como_conteudo.push(c.content);
+        }
+
+        scopes[id] = Scopes {
+            lines: resto_como_conteudo,
+            file: esc.file.clone(),
+            father_id: esc.father_id,
+            functions: esc.functions.clone(),
+            types: { if tipos.len() > 0 { Some(tipos) } else { None } },
+        };
+    }
     Some((types, global_functions))
 }

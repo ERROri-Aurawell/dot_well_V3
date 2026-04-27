@@ -12,14 +12,17 @@ pub fn find_scopes(
     escopos: &mut Vec<Scopes>,
     resto: &mut Vec<Resto>,
     file: &String,
+    father_id: &mut Vec<usize>,
 ) {
-    let mut profundidade: usize = 0;
     let mut stack: Vec<usize> = Vec::new();
     for mut linha in conteudo {
         if linha.contains("{") {
             // Início de um novo escopo.
             linha.truncate(linha.len() - 1);
+
             let scope_id = escopos.len();
+            father_id.push(scope_id as usize);
+
             let separator = if linha.ends_with(' ') || linha.is_empty() {
                 ""
             } else {
@@ -37,22 +40,29 @@ pub fn find_scopes(
                 resto.push(r);
             }
 
+            let father_id: Option<usize> = {
+                if father_id.len() == 0 || father_id.len() == 1 {
+                    None
+                } else {
+                    Some(father_id[father_id.len() - 2])
+                }
+            };
+
             let scope = Scopes {
-                depth: profundidade as u32,
                 lines: Vec::new(),
                 file: file.to_string(),
+                father_id,
                 functions: None,
+                types: None,
             };
 
             escopos.push(scope);
             stack.push(scope_id);
-
-            profundidade = profundidade + 1;
         } else if linha.contains("}") {
             // Fim de um escopo.
             linha.truncate(linha.len() - 1);
 
-            profundidade = profundidade - 1;
+            father_id.pop();
 
             if linha.len() > 0 {
                 if let Some(&current_scope_idx) = stack.last() {
@@ -331,9 +341,11 @@ pub fn return_functions(
             false,
         );
 
+        /*
         for f in &intern_functions {
-            //println!("\nINTERNAL FUNCTIONS: \n---\n{:#?}\n---", f);
+            println!("\nINTERNAL FUNCTIONS: \n---\n{:#?}\n---", f);
         }
+        */
 
         let mut stringfy: Vec<String> = Vec::new();
         for s in scopes_intern_new_lines {
@@ -362,14 +374,41 @@ pub fn return_functions(
     new_resto
 }
 
+fn processors(t: &str) -> &str {
+    match t {
+        "paramless" => t,
+        "interact" => t,
+        _ => {
+            let error = &format!("Unknown Processor");
+            kill(error);
+        }
+    }
+}
+
+fn preprocessor(t: &str) -> (String, Option<bool>) {
+    let t: String = t.to_lowercase();
+    let public: Option<bool>;
+    let processor: &str;
+
+    if let Some((proc, _)) = t.split_once("public") {
+        public = Some(true);
+        processor = processors(&proc)
+    } else {
+        public = None;
+        processor = processors(&t)
+    };
+
+    (processor.to_string(), public)
+}
+
 pub fn find_types(
     scopes: &mut Vec<Scopes>,
     resto: &mut Vec<Resto>,
     is_debug: &bool,
+    global: bool,
 ) -> (Vec<Resto>, Vec<Type>) {
     let mut raw_types: Vec<RawType> = Vec::new();
     let mut new_resto: Vec<Resto> = Vec::new();
-
     let mut type_names: Vec<String> = Vec::new();
 
     for r in resto {
@@ -377,10 +416,109 @@ pub fn find_types(
             new_resto.push(r.clone());
             continue;
         };
+
         if *is_debug {
             println!("\nFILTER: {}", &r.content);
         }
 
+        let mut type_to_test: Vec<&str> = r.content.split_whitespace().collect();
+
+        type_to_test.reverse();
+
+        println!("{:#?}", &type_to_test);
+
+        let mut params_id: Option<usize> = None;
+        let mut public: bool = false;
+        let mut name: String = "".to_string();
+        let mut pre_processor: String = "".to_string();
+
+        for t in type_to_test {
+            if t.starts_with("@") {
+                let (processor, b) = preprocessor(&t[1..]);
+                pre_processor = processor;
+                if b.is_some() {
+                    public = true;
+                }
+                continue;
+            };
+
+            if t == "public" {
+                public = true;
+                continue;
+            };
+
+            if t.starts_with("*SCOPE:") {
+                if pre_processor != "paramless" {
+                    let error = &format!("");
+                    let number: usize = t[7..].parse().expect(error);
+
+                    params_id = Some(number);
+                };
+                continue;
+            };
+
+            if t == "type" {
+                continue;
+            };
+
+            name = t.to_string();
+        }
+
+        if public && !global {
+            let error = &format!("");
+            kill(error);
+        };
+
+        if name.is_empty() {
+            let error = &format!("");
+            kill(error);
+        }
+
+        //
+
+        if *is_debug {
+            println!("NAME: {}", &name);
+        }
+
+        if name.ends_with(";") {
+            name.pop();
+        };
+
+        let rt: RawType;
+
+        type_names.push(name.trim().to_string());
+
+        let special: Option<String> = {
+            if !&pre_processor.is_empty() {
+                Some(pre_processor.clone())
+            } else {
+                None
+            }
+        };
+
+        if pre_processor == "paramless" {
+            rt = RawType {
+                name: name.clone(),
+                public,
+                file: r.file.clone(),
+                fields: None,
+                special,
+            };
+        } else {
+            if params_id.is_some() {
+                let id = params_id.unwrap();
+                rt = extract(id, &r.file, scopes, &*is_debug, &name, public, special);
+            } else {
+                let error = &format!("heh");
+                kill(error);
+            }
+        }
+        raw_types.push(rt);
+
+        if *is_debug {
+            println!("CRIANDO TYPE: {}", name);
+        }
+        /*
         let is_public: bool;
         let resto: &str;
         let mut true_name: String; //
@@ -391,18 +529,20 @@ pub fn find_types(
         let special: Option<String>;
 
         if let Some((processor, res)) = r.content.split_once("@") {
-            if res.starts_with("ParamLess") {
+            println!("PROCESSOR: {}", processor);
+
+            if res.to_lowercase().starts_with("paramless") {
                 pre_process = &res[9..];
                 paramless = true;
                 interact = false;
 
-                special = Some(String::from("ParamLess"));
-            } else if res.starts_with("Interact") {
+                special = Some(String::from("paramless"));
+            } else if res.to_lowercase().starts_with("interact") {
                 pre_process = &res[7..];
                 paramless = false;
                 interact = true;
 
-                special = Some(String::from("Interact"));
+                special = Some(String::from("interact"));
             } else {
                 let error = format!(
                     "INVALID PROCESSOR: |{}|\n|{}|\n|{}|",
@@ -446,10 +586,10 @@ pub fn find_types(
         let init: &str = &resto[0..5];
 
         if *is_debug {
-            println!("INIT: {}", &init);
+            println!("INIT: \"{}\"", &init.replace("+", "").trim());
         }
 
-        if init != "type+" {
+        if init.replace("+", "").trim() != "type" {
             let error = format!("TYPE SYNTAX ERROR: \"{}\" : {}", r.content, &r.file);
             kill(&error);
         }
@@ -461,13 +601,15 @@ pub fn find_types(
             resto[5..].to_string()
         };
 
+        println!("RESTO: {}", &resto);
+
         if let Some((nome, id)) = resto.split_once("+") {
             if *is_debug {
                 println!("NAME: {}", &nome);
             }
             true_name = nome.to_string();
 
-            if true_name.ends_with(";"){
+            if true_name.ends_with(";") {
                 true_name.pop();
             };
 
@@ -476,26 +618,29 @@ pub fn find_types(
             type_names.push(true_name.trim().to_string());
 
             if !paramless {
-                rt = extract(id, &r.file, scopes, &*is_debug, &true_name, is_public, special);
+                rt = extract(
+                    id, &r.file, scopes, &*is_debug, &true_name, is_public, special,
+                );
             } else {
                 rt = RawType {
                     name: true_name,
                     public: is_public,
                     file: r.file.clone(),
                     fields: None,
-                    special 
+                    special,
                 };
             }
 
             raw_types.push(rt);
 
-            if *is_debug{
+            if *is_debug {
                 println!("CRIANDO TYPE: {}", nome);
             }
         } else {
             let error = format!("TYPE INTERNAL ERROR: BUILDING MALFUNCTION: {}", &r.file);
             kill(&error);
         }
+        */
     }
     //
 
@@ -516,15 +661,13 @@ pub fn find_types(
 
         let t = &r.content.replace(" ", "+")[5..];
         if let Some((who, id)) = t.split_once("+*SCOPE:") {
-
-            if *is_debug{
+            if *is_debug {
                 println!("PROCURANDO POR: '{}'", who);
             }
 
             if !type_names.contains(&who.to_string()) {
-
-                if *is_debug{
-                    for t in type_names{
+                if *is_debug {
+                    for t in type_names {
                         println!("EXISTENTE: {}", t);
                     }
                 }
@@ -604,7 +747,7 @@ pub struct RawType {
     pub public: bool,
     pub file: String,
     pub fields: Option<Vec<Field>>,
-    pub special: Option<String>
+    pub special: Option<String>,
 }
 #[derive(Debug, Clone)]
 pub struct Field {
@@ -614,7 +757,7 @@ pub struct Field {
 }
 
 fn extract(
-    id: &str,
+    id: usize,
     file: &str,
     scopes: &mut Vec<Scopes>,
     is_debug: &bool,
@@ -622,10 +765,6 @@ fn extract(
     public: bool,
     special: Option<String>,
 ) -> RawType {
-    let id: &str = &id[7..];
-    let error = format!("TYPE INTERNAL ERROR: PARSING MALFUNCTION : {}", file);
-    let id: u32 = id.parse().expect(&error);
-
     let escopo_interno: &Scopes = &scopes[id as usize];
     if *is_debug {
         println!("\nESCOPO INTERNO: {:?}", &escopo_interno);
@@ -665,6 +804,9 @@ fn extract(
                 var_type: type_of.to_string(),
             });
         } else {
+            if *is_debug {
+                println!("Tentei extrair parâmetros?");
+            }
             let error = format!("TYPE SYNTAX ERROR: \"{}\" : {}", true_name, &file);
             kill(&error);
         }
@@ -675,6 +817,6 @@ fn extract(
         public,
         file: file.to_string(),
         fields: Some(params),
-        special
+        special,
     }
 }
