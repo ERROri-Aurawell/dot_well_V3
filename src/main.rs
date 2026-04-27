@@ -118,7 +118,7 @@ fn main() {
         println!("\n---------");
 
         for t in &types {
-            println!("TYPE: {:#?}", t);
+            println!("TYPES: {:#?}", t);
         }
 
         println!("\n--------");
@@ -142,7 +142,7 @@ fn main() {
         println!("\n---------");
 
         for r in &resto {
-            println!("RESTO: {:#?}", r);
+            println!("GLOBAL: {:#?}", r);
         }
 
         println!("\n--------")

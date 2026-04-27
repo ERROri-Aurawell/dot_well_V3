@@ -432,6 +432,7 @@ pub fn find_types(
         let mut name: String = "".to_string();
         let mut pre_processor: String = "".to_string();
 
+        // Não me pergunte por que, mas "type type type" é perfeitamente válido.
         for t in type_to_test {
             if t.starts_with("@") {
                 let (processor, b) = preprocessor(&t[1..]);
@@ -465,12 +466,12 @@ pub fn find_types(
         }
 
         if public && !global {
-            let error = &format!("");
+            let error = &format!("Publicos apenas no escopo global");
             kill(error);
         };
 
         if name.is_empty() {
-            let error = &format!("");
+            let error = &format!("Eu vou criar o que exatamente?");
             kill(error);
         }
 
@@ -518,129 +519,6 @@ pub fn find_types(
         if *is_debug {
             println!("CRIANDO TYPE: {}", name);
         }
-        /*
-        let is_public: bool;
-        let resto: &str;
-        let mut true_name: String; //
-        let pre_process: &str;
-        let paramless: bool;
-        let interact: bool;
-
-        let special: Option<String>;
-
-        if let Some((processor, res)) = r.content.split_once("@") {
-            println!("PROCESSOR: {}", processor);
-
-            if res.to_lowercase().starts_with("paramless") {
-                pre_process = &res[9..];
-                paramless = true;
-                interact = false;
-
-                special = Some(String::from("paramless"));
-            } else if res.to_lowercase().starts_with("interact") {
-                pre_process = &res[7..];
-                paramless = false;
-                interact = true;
-
-                special = Some(String::from("interact"));
-            } else {
-                let error = format!(
-                    "INVALID PROCESSOR: |{}|\n|{}|\n|{}|",
-                    processor, r.content, r.file
-                );
-                kill(&error);
-            }
-        } else {
-            pre_process = &r.content;
-            paramless = false;
-            interact = false;
-
-            special = None;
-        }
-
-        if interact == true && paramless == true {
-            kill("What?");
-        };
-
-        let replace = pre_process.replace(" ", "+");
-
-        if let Some((_, tipo)) = replace.split_once("public+") {
-            is_public = true;
-            resto = tipo;
-        } else {
-            is_public = false;
-            resto = &replace;
-        }
-
-        if *is_debug {
-            println!("RESTO NOVO:{}", &resto);
-        }
-
-        /*
-        //Método se eu fosse ignorar palavras entre o public e o type
-        if let Some((_, tipo)) = resto.split_once("type+") {
-            resto = tipo;
-        }
-        */
-
-        let init: &str = &resto[0..5];
-
-        if *is_debug {
-            println!("INIT: \"{}\"", &init.replace("+", "").trim());
-        }
-
-        if init.replace("+", "").trim() != "type" {
-            let error = format!("TYPE SYNTAX ERROR: \"{}\" : {}", r.content, &r.file);
-            kill(&error);
-        }
-
-        let resto: String = if paramless {
-            let r: &str = &resto[5..];
-            format!("{}+", r)
-        } else {
-            resto[5..].to_string()
-        };
-
-        println!("RESTO: {}", &resto);
-
-        if let Some((nome, id)) = resto.split_once("+") {
-            if *is_debug {
-                println!("NAME: {}", &nome);
-            }
-            true_name = nome.to_string();
-
-            if true_name.ends_with(";") {
-                true_name.pop();
-            };
-
-            let rt: RawType;
-
-            type_names.push(true_name.trim().to_string());
-
-            if !paramless {
-                rt = extract(
-                    id, &r.file, scopes, &*is_debug, &true_name, is_public, special,
-                );
-            } else {
-                rt = RawType {
-                    name: true_name,
-                    public: is_public,
-                    file: r.file.clone(),
-                    fields: None,
-                    special,
-                };
-            }
-
-            raw_types.push(rt);
-
-            if *is_debug {
-                println!("CRIANDO TYPE: {}", nome);
-            }
-        } else {
-            let error = format!("TYPE INTERNAL ERROR: BUILDING MALFUNCTION: {}", &r.file);
-            kill(&error);
-        }
-        */
     }
     //
 
@@ -770,7 +648,9 @@ fn extract(
         println!("\nESCOPO INTERNO: {:?}", &escopo_interno);
     }
 
-    let so_close_params: Vec<&str> = escopo_interno.lines[0].split(",").collect();
+    let so_close_params: Vec<&str> = escopo_interno.lines[0].split(",").filter(|s| !s.is_empty()).collect();
+
+
     if so_close_params.is_empty() {
         let error = format!(
             "TYPE SYNTAX ERROR: NO PARAMS FOUND: \"{}\" : {}",

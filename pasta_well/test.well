@@ -77,9 +77,13 @@ impl Palavra2{
     }
 }
 
-@interact type palavra3{
+@interact type type type type type type palavra3{
     ç: String
 }
+
+@Interact Banana public type{
+    batata: miniInt,
+} 
 
 impl palavra3{
     public fn palavra(){
